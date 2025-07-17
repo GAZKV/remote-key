@@ -41,7 +41,13 @@
 
   <script>
     function sendPress(id) {
-      fetch(`/press/${id}`, { method: 'POST' })
+      const btn = document.querySelector(`[data-btn="${id}"]`);
+      const seq = btn?.dataset.seq || '';
+      fetch(`/press/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seq })
+      })
         .then(r => r.json())
         .then(resp => {
           if (resp.status === 'ok') {
@@ -73,6 +79,7 @@
       const btn = document.createElement('button');
       btn.className = 'btn btn-primary btn-custom';
       btn.dataset.btn = id;
+      btn.dataset.seq = (cfg.seq || []).join(' ');
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -155,6 +162,7 @@
 
       labelSpan.textContent = labelInput.value;
       seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
+      button.dataset.seq = seqInput.value.trim();
 
       toggleGroups();
       applyStyles();
@@ -188,22 +196,23 @@
         saveCurrent();
       });
 
-      seqInput.addEventListener('change', () => {
-        const seq = seqInput.value.trim();
-        fetch(`/config/${id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seq })
-        })
-          .then(r => r.json())
-          .then(resp => {
-            if (resp.status === 'ok') {
-              seqDisplay.textContent = seq.split(' ').join(' + ');
-            }
+        seqInput.addEventListener('change', () => {
+          const seq = seqInput.value.trim();
+          fetch(`/config/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seq })
           })
-          .catch(() => {});
-        saveCurrent();
-      });
+            .then(r => r.json())
+            .then(resp => {
+              if (resp.status === 'ok') {
+                seqDisplay.textContent = seq.split(' ').join(' + ');
+                button.dataset.seq = seq;
+              }
+            })
+            .catch(() => {});
+          saveCurrent();
+        });
     }
 
     window.addEventListener('DOMContentLoaded', () => {
