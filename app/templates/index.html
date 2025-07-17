@@ -20,26 +20,51 @@
       right: 1rem;
       z-index: 1050;
     }
-    #configPanel {
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 250px;
-      height: 100%;
-      padding: 1rem;
-      background: #fff;
-      border-left: 1px solid #ccc;
-      display: none;
-      overflow-y: auto;
-    }
   </style>
 </head>
 <body>
 
-  <button id="configBtn" class="btn btn-secondary">\u2699</button>
-  <div id="configPanel">
-    <h5>Configuraci\u00f3n</h5>
-    <!-- contenido del panel de configuraci\u00f3n -->
+  <button id="configBtn" class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#configPanel" aria-controls="configPanel">\u2699</button>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="configPanel" aria-labelledby="configPanelLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="configPanelLabel">Configuraci\u00f3n</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      {% for id, data in buttons.items() %}
+        <form class="mb-4" data-btn="{{ id }}">
+          <h6 class="mb-2">Bot\u00f3n {{ id }}</h6>
+          <div class="mb-2">
+            <label class="form-label">Etiqueta / Label</label>
+            <input type="text" class="form-control" value="{{ data.label }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Fondo</label>
+            <div class="form-check">
+              <input class="form-check-input bg-choice" type="radio" name="bg_{{ id }}" id="bgImage{{ id }}" value="image" {% if data.image %}checked{% endif %}>
+              <label class="form-check-label" for="bgImage{{ id }}">Imagen</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input bg-choice" type="radio" name="bg_{{ id }}" id="bgColor{{ id }}" value="color" {% if data.color and not data.image %}checked{% endif %}>
+              <label class="form-check-label" for="bgColor{{ id }}">Color</label>
+            </div>
+          </div>
+          <div class="mb-2 image-group {% if not data.image %}d-none{% endif %}">
+            <label class="form-label">URL de imagen</label>
+            <input type="text" class="form-control" value="{{ data.image or '' }}">
+          </div>
+          <div class="mb-2 color-group {% if data.image %}d-none{% endif %}">
+            <label class="form-label">Color</label>
+            <input type="color" class="form-control form-control-color" value="{{ data.color or '#ffffff' }}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Secuencia / Sequence</label>
+            <input type="text" class="form-control" value="{{ data.seq | join(' ') }}">
+          </div>
+        </form>
+      {% endfor %}
+    </div>
   </div>
 
   <h1 class="text-center mb-4">Panel de Control de Teclas / Remote Key Control Panel</h1>
@@ -58,13 +83,6 @@
   </div>
 
   <script>
-    const configBtn = document.getElementById('configBtn');
-    const configPanel = document.getElementById('configPanel');
-
-    configBtn.addEventListener('click', () => {
-      configPanel.style.display = 'block';
-    });
-
     function sendPress(id) {
       fetch(`/press/${id}`, { method: 'POST' })
         .then(r => r.json())
@@ -80,7 +98,17 @@
           alert('No se pudo conectar al servidor / Could not connect to the server.');
         });
     }
-  </script>
+
+    document.querySelectorAll('.bg-choice').forEach(radio => {
+      radio.addEventListener('change', e => {
+        const form = e.target.closest('form');
+        form.querySelector('.image-group').classList.toggle('d-none', e.target.value !== 'image');
+        form.querySelector('.color-group').classList.toggle('d-none', e.target.value !== 'color');
+      });
+    });
+</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
 
 </body>
 </html>
