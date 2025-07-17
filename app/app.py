@@ -133,13 +133,24 @@ def update_config(btn_id):
 
 @app.route('/press/<btn_id>', methods=['POST'])
 def press(btn_id):
-    btn = buttons.get(btn_id)
-    if not btn:
-        return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
+    """Handle a press request for ``btn_id``.
+
+    If ``btn_id`` exists in the ``buttons`` dictionary we fall back to its
+    stored sequence when the incoming payload does not include ``seq``.  For
+    dynamically created buttons that only exist on the client, the request will
+    provide the sequence directly, so we simply execute it.
+    """
+
     data = request.get_json(silent=True) or {}
-    seq_text = data.get('seq')
-    seq = seq_text.split() if seq_text else btn['seq']
-    # Send the entire key sequence using send_key_sequence
+    seq_text = data.get('seq', '')
+
+    if btn_id in buttons:
+        seq = seq_text.split() if seq_text else buttons[btn_id]['seq']
+    else:
+        if not seq_text:
+            return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
+        seq = seq_text.split()
+
     send_key_sequence(" ".join(seq))
     return jsonify({'status': 'ok', 'pressed': seq})
 
