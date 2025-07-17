@@ -12,8 +12,16 @@
     crossorigin="anonymous">
   <style>
     body { padding: 1rem; }
-    .btn-custom { flex: 1 1 30%; margin: .5rem; min-width: 100px; }
-    .grid { display: flex; flex-wrap: wrap; justify-content: center; }
+    .btn-custom {
+      width: 100%;
+      margin: 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: .5rem;
+      justify-items: center;
+    }
     #configBtn {
       position: fixed;
       top: 1rem;
