@@ -21,6 +21,20 @@ def send_key_combo(combo: str) -> None:
     else:
         pyautogui.hotkey(*keys)
 
+
+def send_key_sequence(text: str) -> None:
+    """Send a whitespace separated sequence of key combinations.
+
+    Each segment in ``text`` represents a combination in ``ctrl+alt+del`` style
+    syntax and will be executed in order.
+    """
+    text = text.strip()
+    if not text:
+        return
+
+    for combo in text.split():
+        send_key_combo(combo)
+
 # Mapea cada botón a una lista de secuencias de teclas
 # Map each button to a list of key sequences
 key_sequences = {
@@ -50,10 +64,9 @@ def press(btn_id):
     if not seq:
         return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
 
-    # Ejecuta cada combinación de teclas
-    # Execute each key combination
-    for combo in seq:
-        send_key_combo(combo)
+    # Envía la secuencia de teclas completa usando send_key_sequence
+    # Send the entire key sequence using send_key_sequence
+    send_key_sequence(" ".join(seq))
     return jsonify({'status': 'ok', 'pressed': seq})
 
 if __name__ == '__main__':
