@@ -113,11 +113,13 @@
     });
 
     document.querySelectorAll('.bg-choice').forEach(select => {
-      select.addEventListener('change', e => {
-        const form = e.target.closest('form');
-        form.querySelector('.image-group').classList.toggle('d-none', e.target.value !== 'image');
-        form.querySelector('.color-group').classList.toggle('d-none', e.target.value !== 'color');
-      });
+      const form = select.closest('form');
+      const toggle = () => {
+        form.querySelector('.image-group').classList.toggle('d-none', select.value !== 'image');
+        form.querySelector('.color-group').classList.toggle('d-none', select.value !== 'color');
+      };
+      select.addEventListener('change', toggle);
+      toggle();
     });
 </script>
 
