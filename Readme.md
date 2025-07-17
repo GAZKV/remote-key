@@ -21,7 +21,9 @@ The server listens on port **8000**. Open `http://localhost:8000` in your browse
 
 ## Notes on privileges
 
-The application relies on the [`keyboard`](https://pypi.org/project/keyboard/) library to emulate key presses. Depending on your operating system, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
+The application relies on [`pyautogui`](https://pypi.org/project/pyautogui/) to emulate key presses. Depending on your operating system, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
+
+On Linux, additional system packages like `python3-xlib` may be required for `pyautogui` to function correctly.
 
 ## Using the interface
 

@@ -1,7 +1,25 @@
 from flask import Flask, render_template, jsonify
-import keyboard
+import pyautogui
+
+# Disable the fail-safe feature so moving the mouse to a corner
+# doesn't raise an exception during automated key presses.
+pyautogui.FAILSAFE = False
 
 app = Flask(__name__)
+
+
+def send_key_combo(combo: str) -> None:
+    """Send a key combination using pyautogui.
+
+    The incoming string uses the ``"ctrl+alt+del"`` style syntax. When
+    multiple keys are separated by ``+`` they will be pressed
+    simultaneously, otherwise a single key press is issued.
+    """
+    keys = combo.split("+")
+    if len(keys) == 1:
+        pyautogui.press(keys[0])
+    else:
+        pyautogui.hotkey(*keys)
 
 # Mapea cada botón a una lista de secuencias de teclas
 # Map each button to a list of key sequences
@@ -35,12 +53,12 @@ def press(btn_id):
     # Ejecuta cada combinación de teclas
     # Execute each key combination
     for combo in seq:
-        keyboard.press_and_release(combo)
+        send_key_combo(combo)
     return jsonify({'status': 'ok', 'pressed': seq})
 
 if __name__ == '__main__':
-    # Atención: es necesario ejecutar con privilegios en algunos sistemas
-    # para que keyboard funcione correctamente.
-    # Note: on some systems you must run with elevated privileges
-    # for the keyboard library to work properly.
+    # Atención: es posible que necesites ejecutar con privilegios
+    # en algunos sistemas para que el envío de teclas funcione correctamente.
+    # Note: on some systems you may need elevated privileges for
+    # pyautogui to send key events properly.
     app.run(host='0.0.0.0', port=8000)
