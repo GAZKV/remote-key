@@ -20,6 +20,7 @@
       border-radius: .5rem;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
       transition: background-color .2s, box-shadow .2s, transform .1s;
+      font-size: clamp(0.75rem, 2.5vw, 1.25rem);
     }
 
     @keyframes pressBounce {
@@ -37,9 +38,19 @@
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(clamp(80px, 20vw, 160px), 1fr));
       gap: .5rem;
       justify-items: center;
+    }
+    @media (min-width: 1400px) {
+      .grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+    @media (max-width: 576px) {
+      .grid {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      }
     }
     #configBtn {
       position: fixed;
