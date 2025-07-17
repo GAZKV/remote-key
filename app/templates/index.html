@@ -289,8 +289,11 @@
       const addBtn = document.getElementById('addButton');
       if (addBtn) addBtn.addEventListener('click', addNewButton);
 
-      const ids = getIdList() || Object.keys(defaults);
-      if (!getIdList()) saveIdList(ids);
+      let ids = getIdList();
+      if (!ids) {
+        ids = Object.keys(defaults);
+        saveIdList(ids);
+      }
 
       ids.forEach(id => {
         const saved = loadConfig(id) || {};
