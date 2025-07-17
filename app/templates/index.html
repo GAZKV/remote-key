@@ -41,6 +41,7 @@
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body" id="configContainer">
+      <button id="addButton" type="button" class="btn btn-success w-100 mb-3">Añadir nuevo botón</button>
       <!-- Forms will be injected here -->
     </div>
     </div>
@@ -220,21 +221,62 @@
               }
             })
             .catch(() => {});
-          saveCurrent();
-        });
+        saveCurrent();
+      });
+    }
+
+    function getIdList() {
+      try {
+        return JSON.parse(localStorage.getItem('button_ids') || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveIdList(ids) {
+      localStorage.setItem('button_ids', JSON.stringify(ids));
+    }
+
+    function generateId(existing) {
+      let i = 1;
+      while (existing.includes(String(i))) i++;
+      return String(i);
+    }
+
+    let configContainer, grid;
+
+    function addNewButton() {
+      const ids = getIdList() || Object.keys(defaults);
+      const newId = generateId(ids);
+      ids.push(newId);
+      saveIdList(ids);
+      const cfg = { label: `Bot\u00f3n ${newId}`, seq: [], image: '', color: '', bg: 'color' };
+      saveConfig(newId, cfg);
+      const button = createButton(newId, cfg);
+      grid.appendChild(button);
+      const form = createForm(newId, cfg);
+      configContainer.appendChild(form);
+      setupForm(form, button, newId);
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      const configContainer = document.getElementById('configContainer');
-      const grid = document.getElementById('buttonGrid');
-      Object.keys(defaults).forEach(id => {
+      configContainer = document.getElementById('configContainer');
+      grid = document.getElementById('buttonGrid');
+      const addBtn = document.getElementById('addButton');
+      if (addBtn) addBtn.addEventListener('click', addNewButton);
+
+      const ids = getIdList() || Object.keys(defaults);
+      if (!getIdList()) saveIdList(ids);
+
+      ids.forEach(id => {
         const saved = loadConfig(id) || {};
+        const def = defaults[id] || {};
         const cfg = {
-          label: saved.label || defaults[id].label,
-          image: saved.image !== undefined ? saved.image : defaults[id].image,
-          color: saved.color !== undefined ? saved.color : defaults[id].color,
-          seq: saved.seq ? saved.seq.trim().split(/\s+/) : defaults[id].seq,
-          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (defaults[id].image ? 'image' : 'color')))
+          label: saved.label || def.label || `Bot\u00f3n ${id}`,
+          image: saved.image !== undefined ? saved.image : def.image,
+          color: saved.color !== undefined ? saved.color : def.color,
+          seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
+          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color')))
         };
         const button = createButton(id, cfg);
         grid.appendChild(button);
