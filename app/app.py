@@ -141,8 +141,11 @@ def press(btn_id):
     provide the sequence directly, so we simply execute it.
     """
 
-    data = request.get_json(silent=True) or {}
-    seq_text = data.get('seq', '')
+    data = request.get_json(silent=True)
+    if data and 'seq' in data:
+        seq_text = data.get('seq', '')
+    else:
+        seq_text = request.values.get('seq', '')
 
     if btn_id in buttons:
         seq = seq_text.split() if seq_text else buttons[btn_id]['seq']
