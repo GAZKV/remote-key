@@ -96,50 +96,116 @@
         });
     }
 
-    // Load saved labels and update in real time
+    function saveConfig(id, cfg) {
+      localStorage.setItem('config_' + id, JSON.stringify(cfg));
+    }
+
+    function loadConfig(id) {
+      try {
+        return JSON.parse(localStorage.getItem('config_' + id) || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
     document.querySelectorAll('form[data-btn]').forEach(form => {
       const id = form.dataset.btn;
-      const input = form.querySelector('.label-input');
-      const saved = localStorage.getItem('label_' + id);
-      const labelSpan = document.querySelector(`button[data-btn="${id}"] .btn-label`);
+      const labelInput = form.querySelector('.label-input');
+      const bgSelect = form.querySelector('.bg-choice');
+      const imgInput = form.querySelector('.image-group input');
+      const colorInput = form.querySelector('.color-group input');
+      const seqInput = form.querySelector('.seq-input');
+
+      const button = document.querySelector(`button[data-btn="${id}"]`);
+      const labelSpan = button.querySelector('.btn-label');
+      const seqDisplay = button.querySelector('.seq-display');
+
+      const toggleGroups = () => {
+        form.querySelector('.image-group').classList.toggle('d-none', bgSelect.value !== 'image');
+        form.querySelector('.color-group').classList.toggle('d-none', bgSelect.value !== 'color');
+      };
+
+      const applyStyles = () => {
+        button.style.backgroundImage = '';
+        button.style.backgroundColor = '';
+        if (bgSelect.value === 'image' && imgInput.value) {
+          button.style.backgroundImage = `url('${imgInput.value}')`;
+          button.style.backgroundSize = 'cover';
+        } else if (bgSelect.value === 'color') {
+          button.style.backgroundColor = colorInput.value;
+        }
+      };
+
+      const saveCurrent = () => {
+        saveConfig(id, {
+          label: labelInput.value.trim(),
+          bg: bgSelect.value,
+          image: imgInput.value.trim(),
+          color: colorInput.value,
+          seq: seqInput.value.trim()
+        });
+      };
+
+      const saved = loadConfig(id);
       if (saved) {
-        input.value = saved;
-        if (labelSpan) labelSpan.textContent = saved;
+        if (saved.label) labelInput.value = saved.label;
+        if (saved.bg) bgSelect.value = saved.bg;
+        if (saved.image) imgInput.value = saved.image;
+        if (saved.color) colorInput.value = saved.color;
+        if (saved.seq) seqInput.value = saved.seq;
       }
-      input.addEventListener('input', e => {
-        localStorage.setItem('label_' + id, e.target.value);
-        if (labelSpan) labelSpan.textContent = e.target.value;
+
+      labelSpan.textContent = labelInput.value;
+      seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
+
+      toggleGroups();
+      applyStyles();
+
+      if (seqInput.value.trim()) {
+        fetch(`/config/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seq: seqInput.value.trim() })
+        }).catch(() => {});
+      }
+
+      labelInput.addEventListener('input', () => {
+        labelSpan.textContent = labelInput.value;
+        saveCurrent();
       });
 
-      const seqInput = form.querySelector('.seq-input');
-      const seqDisplay = document.querySelector(`button[data-btn="${id}"] .seq-display`);
-      if (seqInput) {
-        seqInput.addEventListener('change', e => {
-          const seq = e.target.value.trim();
-          fetch(`/config/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seq })
-          })
-            .then(r => r.json())
-            .then(resp => {
-              if (resp.status === 'ok' && seqDisplay) {
-                seqDisplay.textContent = seq.split(' ').join(' + ');
-              }
-            })
-            .catch(err => console.error(err));
-        });
-      }
-    });
+      bgSelect.addEventListener('change', () => {
+        toggleGroups();
+        applyStyles();
+        saveCurrent();
+      });
 
-    document.querySelectorAll('.bg-choice').forEach(select => {
-      const form = select.closest('form');
-      const toggle = () => {
-        form.querySelector('.image-group').classList.toggle('d-none', select.value !== 'image');
-        form.querySelector('.color-group').classList.toggle('d-none', select.value !== 'color');
-      };
-      select.addEventListener('change', toggle);
-      toggle();
+      imgInput.addEventListener('input', () => {
+        applyStyles();
+        saveCurrent();
+      });
+
+      colorInput.addEventListener('input', () => {
+        applyStyles();
+        saveCurrent();
+      });
+
+      seqInput.addEventListener('change', () => {
+        const seq = seqInput.value.trim();
+        fetch(`/config/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seq })
+        })
+          .then(r => r.json())
+          .then(resp => {
+            if (resp.status === 'ok') {
+              seqDisplay.textContent = seq.split(' ').join(' + ');
+            }
+          })
+          .catch(() => {});
+        saveCurrent();
+      });
     });
 </script>
 
