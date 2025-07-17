@@ -107,7 +107,10 @@
       form.dataset.btn = id;
       const bgType = cfg.bg || (cfg.image ? 'image' : 'color');
       form.innerHTML = `
-          <h6 class="mb-2">Bot\u00f3n ${id}</h6>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Bot\u00f3n ${id}</h6>
+            <button type="button" class="btn btn-danger btn-sm delete-btn">&#128465;</button>
+          </div>
           <div class="mb-2">
             <label class="form-label">Etiqueta / Label</label>
             <input type="text" class="form-control label-input" value="${cfg.label}">
@@ -140,6 +143,7 @@
       const imgInput = form.querySelector('.image-group input');
       const colorInput = form.querySelector('.color-group input');
       const seqInput = form.querySelector('.seq-input');
+      const deleteBtn = form.querySelector('.delete-btn');
 
       const labelSpan = button.querySelector('.btn-label');
       const seqDisplay = button.querySelector('.seq-display');
@@ -169,6 +173,26 @@
           seq: seqInput.value.trim()
         });
       };
+
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          if (!confirm('¿Eliminar este botón?')) return;
+          form.remove();
+          button.remove();
+          localStorage.removeItem('config_' + id);
+          const ids = getIdList() || [];
+          const idx = ids.indexOf(id);
+          if (idx !== -1) {
+            ids.splice(idx, 1);
+            saveIdList(ids);
+          }
+          fetch(`/config/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ seq: '' })
+          }).catch(() => {});
+        });
+      }
 
       labelSpan.textContent = labelInput.value;
       seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
