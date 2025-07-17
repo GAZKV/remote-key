@@ -143,13 +143,14 @@
       const modal = new bootstrap.Modal(modalEl);
       const yesBtn = document.getElementById('confirmDeleteYes');
       return new Promise(resolve => {
+        let confirmed = false;
         const onConfirm = () => {
-          cleanup();
-          resolve(true);
+          confirmed = true;
+          bootstrap.Modal.getInstance(modalEl).hide();
         };
         const onHidden = () => {
           cleanup();
-          resolve(false);
+          resolve(confirmed);
         };
         function cleanup() {
           yesBtn.removeEventListener('click', onConfirm);
