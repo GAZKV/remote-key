@@ -41,14 +41,10 @@
           </div>
           <div class="mb-2">
             <label class="form-label">Fondo</label>
-            <div class="form-check">
-              <input class="form-check-input bg-choice" type="radio" name="bg_{{ id }}" id="bgImage{{ id }}" value="image" {% if data.image %}checked{% endif %}>
-              <label class="form-check-label" for="bgImage{{ id }}">Imagen</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input bg-choice" type="radio" name="bg_{{ id }}" id="bgColor{{ id }}" value="color" {% if data.color and not data.image %}checked{% endif %}>
-              <label class="form-check-label" for="bgColor{{ id }}">Color</label>
-            </div>
+            <select class="form-select bg-choice">
+              <option value="image" {% if data.image %}selected{% endif %}>Imagen</option>
+              <option value="color" {% if data.color and not data.image %}selected{% endif %}>Color</option>
+            </select>
           </div>
           <div class="mb-2 image-group {% if not data.image %}d-none{% endif %}">
             <label class="form-label">URL de imagen</label>
@@ -116,8 +112,8 @@
       });
     });
 
-    document.querySelectorAll('.bg-choice').forEach(radio => {
-      radio.addEventListener('change', e => {
+    document.querySelectorAll('.bg-choice').forEach(select => {
+      select.addEventListener('change', e => {
         const form = e.target.closest('form');
         form.querySelector('.image-group').classList.toggle('d-none', e.target.value !== 'image');
         form.querySelector('.color-group').classList.toggle('d-none', e.target.value !== 'color');
