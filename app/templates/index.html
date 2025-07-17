@@ -14,9 +14,33 @@
     body { padding: 1rem; }
     .btn-custom { flex: 1 1 30%; margin: .5rem; min-width: 100px; }
     .grid { display: flex; flex-wrap: wrap; justify-content: center; }
+    #configBtn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1050;
+    }
+    #configPanel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 250px;
+      height: 100%;
+      padding: 1rem;
+      background: #fff;
+      border-left: 1px solid #ccc;
+      display: none;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
+
+  <button id="configBtn" class="btn btn-secondary">\u2699</button>
+  <div id="configPanel">
+    <h5>Configuraci\u00f3n</h5>
+    <!-- contenido del panel de configuraci\u00f3n -->
+  </div>
 
   <h1 class="text-center mb-4">Panel de Control de Teclas / Remote Key Control Panel</h1>
   <div class="grid">
@@ -34,6 +58,13 @@
   </div>
 
   <script>
+    const configBtn = document.getElementById('configBtn');
+    const configPanel = document.getElementById('configPanel');
+
+    configBtn.addEventListener('click', () => {
+      configPanel.style.display = 'block';
+    });
+
     function sendPress(id) {
       fetch(`/press/${id}`, { method: 'POST' })
         .then(r => r.json())
