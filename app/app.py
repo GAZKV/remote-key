@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 import pyautogui
 
 # Disable the fail-safe feature so moving the mouse to a corner
@@ -117,6 +117,19 @@ buttons = {
 def index():
     # Pass the button configuration to the template
     return render_template('index.html', buttons=buttons)
+
+
+@app.route('/config/<btn_id>', methods=['POST'])
+def update_config(btn_id):
+    """Update the key sequence for a button."""
+    btn = buttons.get(btn_id)
+    if not btn:
+        return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
+
+    data = request.get_json(silent=True) or {}
+    seq_text = data.get('seq', '')
+    btn['seq'] = seq_text.split() if seq_text else []
+    return jsonify({'status': 'ok', 'seq': btn['seq']})
 
 @app.route('/press/<btn_id>', methods=['POST'])
 def press(btn_id):
