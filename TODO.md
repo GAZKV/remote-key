@@ -74,7 +74,7 @@ Objetivo: Transformar la interfaz en una cuadrícula dinámica, responsiva y vis
 
 - [ ] Agregar botón "Añadir nuevo botón" que cree un nuevo bloque editable en el panel de configuración.
 - [ ] Agregar ícono de papelera o botón “Eliminar” por cada botón en la interfaz de configuración.
-- [ ] Agregar confirmación antes de eliminar un botón (modal de Bootstrap o JS simple).
+- [x] Agregar confirmación antes de eliminar un botón (modal de Bootstrap o JS simple).
 
 ---
 
