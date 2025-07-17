@@ -65,11 +65,11 @@
 </head>
 <body>
 
-  <button id="configBtn" class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#configPanel" aria-controls="configPanel">\u2699</button>
+  <button id="configBtn" class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#configPanel" aria-controls="configPanel">⚙</button>
 
   <div class="offcanvas offcanvas-end" tabindex="-1" id="configPanel" aria-labelledby="configPanelLabel">
     <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="configPanelLabel">Configuraci\u00f3n</h5>
+      <h5 class="offcanvas-title" id="configPanelLabel">Configuración</h5>
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body" id="configContainer">
@@ -85,11 +85,11 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Confirmar eliminaci\u00f3n</h5>
+            <h5 class="modal-title">Confirmar eliminación</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            \u00bfEliminar este bot\u00f3n?
+            ¿Eliminar este botón?
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -186,7 +186,7 @@
       const bgType = cfg.bg || (cfg.image ? 'image' : 'color');
       form.innerHTML = `
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">Bot\u00f3n ${id}</h6>
+            <h6 class="mb-0">Botón ${id}</h6>
             <button type="button" class="btn btn-outline-danger btn-sm delete-btn">
               <i class="bi bi-trash"></i>
             </button>
@@ -355,7 +355,7 @@
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
-      const cfg = { label: `Bot\u00f3n ${newId}`, seq: [], image: '', color: '', bg: 'color' };
+      const cfg = { label: `Botón ${newId}`, seq: [], image: '', color: '', bg: 'color' };
       saveConfig(newId, cfg);
       const button = createButton(newId, cfg);
       grid.appendChild(button);
@@ -380,7 +380,7 @@
         const saved = loadConfig(id) || {};
         const def = defaults[id] || {};
         const cfg = {
-          label: saved.label || def.label || `Bot\u00f3n ${id}`,
+          label: saved.label || def.label || `Botón ${id}`,
           image: saved.image !== undefined ? saved.image : def.image,
           color: saved.color !== undefined ? saved.color : def.color,
           seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
