@@ -37,7 +37,7 @@
           <h6 class="mb-2">Bot\u00f3n {{ id }}</h6>
           <div class="mb-2">
             <label class="form-label">Etiqueta / Label</label>
-            <input type="text" class="form-control" value="{{ data.label }}">
+            <input type="text" class="form-control label-input" value="{{ data.label }}">
           </div>
           <div class="mb-2">
             <label class="form-label">Fondo</label>
@@ -73,10 +73,11 @@
       <button
         class="btn btn-primary btn-custom"
         onclick="sendPress('{{ id }}')"
+        data-btn="{{ id }}"
         {% if data.image or data.color %}
           style="{% if data.image %}background-image: url('{{ data.image }}'); background-size: cover;{% endif %}{% if data.color %} background-color: {{ data.color }};{% endif %}"
         {% endif %}>
-        {{ data.label }}<br>
+        <span class="btn-label">{{ data.label }}</span><br>
         <small>{{ data.seq | join(' + ') }}</small>
       </button>
     {% endfor %}
@@ -98,6 +99,22 @@
           alert('No se pudo conectar al servidor / Could not connect to the server.');
         });
     }
+
+    // Load saved labels and update in real time
+    document.querySelectorAll('form[data-btn]').forEach(form => {
+      const id = form.dataset.btn;
+      const input = form.querySelector('.label-input');
+      const saved = localStorage.getItem('label_' + id);
+      const labelSpan = document.querySelector(`button[data-btn="${id}"] .btn-label`);
+      if (saved) {
+        input.value = saved;
+        if (labelSpan) labelSpan.textContent = saved;
+      }
+      input.addEventListener('input', e => {
+        localStorage.setItem('label_' + id, e.target.value);
+        if (labelSpan) labelSpan.textContent = e.target.value;
+      });
+    });
 
     document.querySelectorAll('.bg-choice').forEach(radio => {
       radio.addEventListener('change', e => {
