@@ -92,7 +92,7 @@ Objetivo: Corregir errores visuales, de codificación y funcionamiento antes de 
 
 - [ ] Corregir que al eliminar un botón, el modal de confirmación no se cierre automáticamente.
   - Solución sugerida: usar `bootstrap.Modal.getInstance(modal).hide()` tras confirmar.
-- [ ] Reemplazar textos mal codificados como `\u00bf`, `\u00f3`, `\u2699`, etc., por sus versiones unicode legibles.
+- [ ] Reemplazar textos mal codificados como `¿`, `ó`, `⚙`, etc., por sus versiones unicode legibles.
   - Ejemplo: `¿Eliminar este botón?`, `Configuración`, `⚙`.
 - [ ] Asegurar que todos los archivos `.html`, `.js`, y `.json` estén guardados como UTF-8 sin BOM.
 - [ ] Validar que todos los textos dinámicos inyectados por JS no utilicen codificación unicode innecesaria.

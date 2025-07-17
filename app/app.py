@@ -40,73 +40,73 @@ def send_key_sequence(text: str) -> None:
 # a customizable label to display on the UI
 buttons = {
     '1': {
-        'label': 'Bot\u00f3n 1 / Button 1',
+        'label': 'Botón 1 / Button 1',
         'seq': ['alt+n'],
         'image': None,
         'color': '#f8d7da'
     },
     '2': {
-        'label': 'Bot\u00f3n 2 / Button 2',
+        'label': 'Botón 2 / Button 2',
         'seq': ['alt+c'],
         'image': None,
         'color': '#d1e7dd'
     },
     '3': {
-        'label': 'Bot\u00f3n 3 / Button 3',
+        'label': 'Botón 3 / Button 3',
         'seq': ['n'],
         'image': None,
         'color': None
     },
     '4': {
-        'label': 'Bot\u00f3n 4 / Button 4',
+        'label': 'Botón 4 / Button 4',
         'seq': ['1'],
         'image': None,
         'color': None
     },
     '5': {
-        'label': 'Bot\u00f3n 5 / Button 5',
+        'label': 'Botón 5 / Button 5',
         'seq': ['ctrl+a'],
         'image': None,
         'color': None
     },
     '6': {
-        'label': 'Bot\u00f3n 6 / Button 6',
+        'label': 'Botón 6 / Button 6',
         'seq': ['ctrl+c'],
         'image': None,
         'color': None
     },
     '7': {
-        'label': 'Bot\u00f3n 7 / Button 7',
+        'label': 'Botón 7 / Button 7',
         'seq': ['ctrl+v'],
         'image': None,
         'color': None
     },
     '8': {
-        'label': 'Bot\u00f3n 8 / Button 8',
+        'label': 'Botón 8 / Button 8',
         'seq': ['f5'],
         'image': None,
         'color': None
     },
     '9': {
-        'label': 'Bot\u00f3n 9 / Button 9',
+        'label': 'Botón 9 / Button 9',
         'seq': ['esc'],
         'image': None,
         'color': None
     },
     '10': {
-        'label': 'Bot\u00f3n 10 / Button 10',
+        'label': 'Botón 10 / Button 10',
         'seq': ['enter'],
         'image': None,
         'color': None
     },
     '11': {
-        'label': 'Bot\u00f3n 11 / Button 11',
+        'label': 'Botón 11 / Button 11',
         'seq': ['tab'],
         'image': None,
         'color': None
     },
     '12': {
-        'label': 'Bot\u00f3n 12 / Button 12',
+        'label': 'Botón 12 / Button 12',
         'seq': ['space'],
         'image': None,
         'color': None
