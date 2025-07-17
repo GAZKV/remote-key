@@ -28,7 +28,11 @@
       100% { transform: scale(1); }
     }
 
-    .btn-custom.pressed {
+    .btn-custom:active {
+      transform: scale(0.96);
+    }
+
+    .btn-custom.active-anim {
       animation: pressBounce 0.2s ease;
     }
     .grid {
@@ -67,8 +71,8 @@
     function sendPress(id) {
       const btn = document.querySelector(`[data-btn="${id}"]`);
       if (btn) {
-        btn.classList.add('pressed');
-        btn.addEventListener('animationend', () => btn.classList.remove('pressed'), { once: true });
+        btn.classList.add('active-anim');
+        setTimeout(() => btn.classList.remove('active-anim'), 200);
       }
       const seq = btn?.dataset.seq || '';
       fetch(`/press/${id}`, {
