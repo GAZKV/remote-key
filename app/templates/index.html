@@ -31,53 +31,13 @@
       <h5 class="offcanvas-title" id="configPanelLabel">Configuraci\u00f3n</h5>
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
-    <div class="offcanvas-body">
-      {% for id, data in buttons.items() %}
-        <form class="mb-4" data-btn="{{ id }}">
-          <h6 class="mb-2">Bot\u00f3n {{ id }}</h6>
-          <div class="mb-2">
-            <label class="form-label">Etiqueta / Label</label>
-            <input type="text" class="form-control label-input" value="{{ data.label }}">
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Fondo</label>
-            <select class="form-select bg-choice">
-              <option value="image" {% if data.image %}selected{% endif %}>Imagen</option>
-              <option value="color" {% if data.color and not data.image %}selected{% endif %}>Color</option>
-            </select>
-          </div>
-          <div class="mb-2 image-group {% if not data.image %}d-none{% endif %}">
-            <label class="form-label">URL de imagen</label>
-            <input type="text" class="form-control" value="{{ data.image or '' }}">
-          </div>
-          <div class="mb-2 color-group {% if data.image %}d-none{% endif %}">
-            <label class="form-label">Color</label>
-            <input type="color" class="form-control form-control-color" value="{{ data.color or '#ffffff' }}">
-          </div>
-          <div class="mb-2">
-            <label class="form-label">Secuencia / Sequence</label>
-            <input type="text" class="form-control seq-input" value="{{ data.seq | join(' ') }}">
-          </div>
-        </form>
-      {% endfor %}
+    <div class="offcanvas-body" id="configContainer">
+      <!-- Forms will be injected here -->
     </div>
-  </div>
+    </div>
 
   <h1 class="text-center mb-4">Panel de Control de Teclas / Remote Key Control Panel</h1>
-  <div class="grid">
-    {% for id, data in buttons.items() %}
-      <button
-        class="btn btn-primary btn-custom"
-        onclick="sendPress('{{ id }}')"
-        data-btn="{{ id }}"
-        {% if data.image or data.color %}
-          style="{% if data.image %}background-image: url('{{ data.image }}'); background-size: cover;{% endif %}{% if data.color %} background-color: {{ data.color }};{% endif %}"
-        {% endif %}>
-        <span class="btn-label">{{ data.label }}</span><br>
-        <small class="seq-display">{{ data.seq | join(' + ') }}</small>
-      </button>
-    {% endfor %}
-  </div>
+    <div class="grid" id="buttonGrid"></div>
 
   <script>
     function sendPress(id) {
@@ -107,16 +67,63 @@
         return null;
       }
     }
+    const defaults = {{ buttons | tojson }};
 
-    document.querySelectorAll('form[data-btn]').forEach(form => {
-      const id = form.dataset.btn;
+    function createButton(id, cfg) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-primary btn-custom';
+      btn.dataset.btn = id;
+      btn.onclick = () => sendPress(id);
+      if (cfg.image) {
+        btn.style.backgroundImage = `url('${cfg.image}')`;
+        btn.style.backgroundSize = 'cover';
+      } else if (cfg.color) {
+        btn.style.backgroundColor = cfg.color;
+      }
+      btn.innerHTML = `<span class="btn-label">${cfg.label}</span><br><small class="seq-display">${(cfg.seq || []).join(' + ')}</small>`;
+      return btn;
+    }
+
+    function createForm(id, cfg) {
+      const form = document.createElement('form');
+      form.className = 'mb-4';
+      form.dataset.btn = id;
+      const bgType = cfg.bg || (cfg.image ? 'image' : 'color');
+      form.innerHTML = `
+          <h6 class="mb-2">Bot\u00f3n ${id}</h6>
+          <div class="mb-2">
+            <label class="form-label">Etiqueta / Label</label>
+            <input type="text" class="form-control label-input" value="${cfg.label}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Fondo</label>
+            <select class="form-select bg-choice">
+              <option value="image"${bgType === 'image' ? ' selected' : ''}>Imagen</option>
+              <option value="color"${bgType === 'color' ? ' selected' : ''}>Color</option>
+            </select>
+          </div>
+          <div class="mb-2 image-group${bgType === 'image' ? '' : ' d-none'}">
+            <label class="form-label">URL de imagen</label>
+            <input type="text" class="form-control" value="${cfg.image || ''}">
+          </div>
+          <div class="mb-2 color-group${bgType === 'color' ? '' : ' d-none'}">
+            <label class="form-label">Color</label>
+            <input type="color" class="form-control form-control-color" value="${cfg.color || '#ffffff'}">
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Secuencia / Sequence</label>
+            <input type="text" class="form-control seq-input" value="${(cfg.seq || []).join(' ')}">
+          </div>`;
+      return form;
+    }
+
+    function setupForm(form, button, id) {
       const labelInput = form.querySelector('.label-input');
       const bgSelect = form.querySelector('.bg-choice');
       const imgInput = form.querySelector('.image-group input');
       const colorInput = form.querySelector('.color-group input');
       const seqInput = form.querySelector('.seq-input');
 
-      const button = document.querySelector(`button[data-btn="${id}"]`);
       const labelSpan = button.querySelector('.btn-label');
       const seqDisplay = button.querySelector('.seq-display');
 
@@ -145,15 +152,6 @@
           seq: seqInput.value.trim()
         });
       };
-
-      const saved = loadConfig(id);
-      if (saved) {
-        if (saved.label) labelInput.value = saved.label;
-        if (saved.bg) bgSelect.value = saved.bg;
-        if (saved.image) imgInput.value = saved.image;
-        if (saved.color) colorInput.value = saved.color;
-        if (saved.seq) seqInput.value = saved.seq;
-      }
 
       labelSpan.textContent = labelInput.value;
       seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
@@ -206,7 +204,28 @@
           .catch(() => {});
         saveCurrent();
       });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const configContainer = document.getElementById('configContainer');
+      const grid = document.getElementById('buttonGrid');
+      Object.keys(defaults).forEach(id => {
+        const saved = loadConfig(id) || {};
+        const cfg = {
+          label: saved.label || defaults[id].label,
+          image: saved.image !== undefined ? saved.image : defaults[id].image,
+          color: saved.color !== undefined ? saved.color : defaults[id].color,
+          seq: saved.seq ? saved.seq.trim().split(/\s+/) : defaults[id].seq,
+          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (defaults[id].image ? 'image' : 'color')))
+        };
+        const button = createButton(id, cfg);
+        grid.appendChild(button);
+        const form = createForm(id, cfg);
+        configContainer.appendChild(form);
+        setupForm(form, button, id);
+      });
     });
+
 </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-..." crossorigin="anonymous"></script>
