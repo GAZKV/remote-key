@@ -38,18 +38,18 @@ def send_key_sequence(text: str) -> None:
 # Map each button to its configuration including
 # the key sequence and an optional background image
 buttons = {
-    '1': {'seq': ['alt+n'], 'image': None},
-    '2': {'seq': ['alt+c'], 'image': None},
-    '3': {'seq': ['n'], 'image': None},
-    '4': {'seq': ['1'], 'image': None},
-    '5': {'seq': ['ctrl+a'], 'image': None},
-    '6': {'seq': ['ctrl+c'], 'image': None},
-    '7': {'seq': ['ctrl+v'], 'image': None},
-    '8': {'seq': ['f5'], 'image': None},
-    '9': {'seq': ['esc'], 'image': None},
-    '10': {'seq': ['enter'], 'image': None},
-    '11': {'seq': ['tab'], 'image': None},
-    '12': {'seq': ['space'], 'image': None}
+    '1': {'seq': ['alt+n'], 'image': None, 'color': '#f8d7da'},
+    '2': {'seq': ['alt+c'], 'image': None, 'color': '#d1e7dd'},
+    '3': {'seq': ['n'], 'image': None, 'color': None},
+    '4': {'seq': ['1'], 'image': None, 'color': None},
+    '5': {'seq': ['ctrl+a'], 'image': None, 'color': None},
+    '6': {'seq': ['ctrl+c'], 'image': None, 'color': None},
+    '7': {'seq': ['ctrl+v'], 'image': None, 'color': None},
+    '8': {'seq': ['f5'], 'image': None, 'color': None},
+    '9': {'seq': ['esc'], 'image': None, 'color': None},
+    '10': {'seq': ['enter'], 'image': None, 'color': None},
+    '11': {'seq': ['tab'], 'image': None, 'color': None},
+    '12': {'seq': ['space'], 'image': None, 'color': None}
 }
 
 @app.route('/')

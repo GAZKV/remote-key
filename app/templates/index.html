@@ -24,8 +24,8 @@
       <button
         class="btn btn-primary btn-custom"
         onclick="sendPress('{{ id }}')"
-        {% if data.image %}
-          style="background-image: url('{{ data.image }}'); background-size: cover;"
+        {% if data.image or data.color %}
+          style="{% if data.image %}background-image: url('{{ data.image }}'); background-size: cover;{% endif %}{% if data.color %} background-color: {{ data.color }};{% endif %}"
         {% endif %}>
         Botón {{ id }} / Button {{ id }}<br>
         <small>{{ data.seq | join(' + ') }}</small>
