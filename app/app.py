@@ -4,6 +4,7 @@ import keyboard
 app = Flask(__name__)
 
 # Mapea cada botón a una lista de secuencias de teclas
+# Map each button to a list of key sequences
 key_sequences = {
     '1': ['alt+n'],
     '2': ['alt+c'],
@@ -22,6 +23,7 @@ key_sequences = {
 @app.route('/')
 def index():
     # Pasa el mapping a la plantilla
+    # Pass the mapping to the template
     return render_template('index.html', key_sequences=key_sequences)
 
 @app.route('/press/<btn_id>', methods=['POST'])
@@ -31,6 +33,7 @@ def press(btn_id):
         return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
 
     # Ejecuta cada combinación de teclas
+    # Execute each key combination
     for combo in seq:
         keyboard.press_and_release(combo)
     return jsonify({'status': 'ok', 'pressed': seq})
@@ -38,4 +41,6 @@ def press(btn_id):
 if __name__ == '__main__':
     # Atención: es necesario ejecutar con privilegios en algunos sistemas
     # para que keyboard funcione correctamente.
+    # Note: on some systems you must run with elevated privileges
+    # for the keyboard library to work properly.
     app.run(host='0.0.0.0', port=8000)
