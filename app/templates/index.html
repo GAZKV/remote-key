@@ -81,6 +81,24 @@
   <h1 class="text-center mb-4">Panel de Control de Teclas / Remote Key Control Panel</h1>
     <div class="grid" id="buttonGrid"></div>
 
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmar eliminaci\u00f3n</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            \u00bfEliminar este bot\u00f3n?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteYes">Eliminar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   <script>
     function sendPress(id) {
       const btn = document.querySelector(`[data-btn="${id}"]`);
@@ -118,6 +136,29 @@
       } catch (e) {
         return null;
       }
+    }
+
+    function confirmDeletion() {
+      const modalEl = document.getElementById('confirmDeleteModal');
+      const modal = new bootstrap.Modal(modalEl);
+      const yesBtn = document.getElementById('confirmDeleteYes');
+      return new Promise(resolve => {
+        const onConfirm = () => {
+          cleanup();
+          resolve(true);
+        };
+        const onHidden = () => {
+          cleanup();
+          resolve(false);
+        };
+        function cleanup() {
+          yesBtn.removeEventListener('click', onConfirm);
+          modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        }
+        yesBtn.addEventListener('click', onConfirm, { once: true });
+        modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+        modal.show();
+      });
     }
     const defaults = {{ buttons | tojson }};
 
@@ -212,25 +253,26 @@
         });
       };
 
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-          if (!confirm('¿Eliminar este botón?')) return;
-          form.remove();
-          button.remove();
-          localStorage.removeItem('config_' + id);
-          const ids = getIdList() || [];
-          const idx = ids.indexOf(id);
-          if (idx !== -1) {
-            ids.splice(idx, 1);
-            saveIdList(ids);
-          }
-          fetch(`/config/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seq: '' })
-          }).catch(() => {});
-        });
-      }
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', async () => {
+            const confirmed = await confirmDeletion();
+            if (!confirmed) return;
+            form.remove();
+            button.remove();
+            localStorage.removeItem('config_' + id);
+            const ids = getIdList() || [];
+            const idx = ids.indexOf(id);
+            if (idx !== -1) {
+              ids.splice(idx, 1);
+              saveIdList(ids);
+            }
+            fetch(`/config/${id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ seq: '' })
+            }).catch(() => {});
+          });
+        }
 
       labelSpan.textContent = labelInput.value;
       seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
