@@ -167,7 +167,7 @@
       const btn = document.createElement('button');
       btn.className = 'btn btn-primary btn-custom';
       btn.dataset.btn = id;
-      btn.dataset.seq = (cfg.seq || []).join(' ');
+      btn.dataset.seq = (cfg.seq || []).join('\n');
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -212,7 +212,7 @@
           </div>
           <div class="mb-2">
             <label class="form-label">Secuencia / Sequence</label>
-            <input type="text" class="form-control seq-input" value="${(cfg.seq || []).join(' ')}">
+            <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
           </div>`;
       return form;
     }
@@ -276,7 +276,7 @@
         }
 
       labelSpan.textContent = labelInput.value;
-      seqDisplay.textContent = seqInput.value.split(' ').join(' + ');
+      seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
       button.dataset.seq = seqInput.value.trim();
 
       toggleGroups();
@@ -321,7 +321,7 @@
             .then(r => r.json())
             .then(resp => {
               if (resp.status === 'ok') {
-                seqDisplay.textContent = seq.split(' ').join(' + ');
+                seqDisplay.textContent = seq.split(/\s+/).join(' + ');
                 button.dataset.seq = seq;
               }
             })

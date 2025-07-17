@@ -28,3 +28,22 @@ On Linux, additional system packages like `python3-xlib` may be required for `py
 ## Using the interface
 
 The web page displays a grid of buttons. Each button corresponds to a sequence of keys defined in `app/app.py`. Clicking a button sends a request to the server, which then presses and releases the configured keys on the host machine.
+
+### Multiple actions per button
+
+You can configure a button to execute several key combinations in order. In the
+configuration panel, enter one combination per line, for example:
+
+```
+ctrl+c
+ctrl+v
+```
+
+The server will press `Ctrl+C` followed by `Ctrl+V`. The API also accepts JSON
+arrays of actions:
+
+```bash
+curl -X POST http://localhost:8000/press/1 \
+     -H 'Content-Type: application/json' \
+     -d '{"seq": ["ctrl+c", "ctrl+v"]}'
+```
