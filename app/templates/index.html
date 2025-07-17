@@ -27,7 +27,7 @@
         {% if data.image or data.color %}
           style="{% if data.image %}background-image: url('{{ data.image }}'); background-size: cover;{% endif %}{% if data.color %} background-color: {{ data.color }};{% endif %}"
         {% endif %}>
-        Botón {{ id }} / Button {{ id }}<br>
+        {{ data.label }}<br>
         <small>{{ data.seq | join(' + ') }}</small>
       </button>
     {% endfor %}
