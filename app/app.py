@@ -136,8 +136,9 @@ def press(btn_id):
     btn = buttons.get(btn_id)
     if not btn:
         return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
-
-    seq = btn['seq']
+    data = request.get_json(silent=True) or {}
+    seq_text = data.get('seq')
+    seq = seq_text.split() if seq_text else btn['seq']
     # Send the entire key sequence using send_key_sequence
     send_key_sequence(" ".join(seq))
     return jsonify({'status': 'ok', 'pressed': seq})
