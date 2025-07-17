@@ -21,6 +21,16 @@
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
       transition: background-color .2s, box-shadow .2s, transform .1s;
     }
+
+    @keyframes pressBounce {
+      0% { transform: scale(1); }
+      40% { transform: scale(0.9); }
+      100% { transform: scale(1); }
+    }
+
+    .btn-custom.pressed {
+      animation: pressBounce 0.2s ease;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -56,6 +66,10 @@
   <script>
     function sendPress(id) {
       const btn = document.querySelector(`[data-btn="${id}"]`);
+      if (btn) {
+        btn.classList.add('pressed');
+        btn.addEventListener('animationend', () => btn.classList.remove('pressed'), { once: true });
+      }
       const seq = btn?.dataset.seq || '';
       fetch(`/press/${id}`, {
         method: 'POST',
