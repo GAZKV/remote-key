@@ -35,36 +35,35 @@ def send_key_sequence(text: str) -> None:
     for combo in text.split():
         send_key_combo(combo)
 
-# Mapea cada botón a una lista de secuencias de teclas
-# Map each button to a list of key sequences
-key_sequences = {
-    '1': ['alt+n'],
-    '2': ['alt+c'],
-    '3': ['n'],
-    '4': ['1'],
-    '5': ['ctrl+a'],
-    '6': ['ctrl+c'],
-    '7': ['ctrl+v'],
-    '8': ['f5'],
-    '9': ['esc'],
-    '10': ['enter'],
-    '11': ['tab'],
-    '12': ['space']
+# Map each button to its configuration including
+# the key sequence and an optional background image
+buttons = {
+    '1': {'seq': ['alt+n'], 'image': None},
+    '2': {'seq': ['alt+c'], 'image': None},
+    '3': {'seq': ['n'], 'image': None},
+    '4': {'seq': ['1'], 'image': None},
+    '5': {'seq': ['ctrl+a'], 'image': None},
+    '6': {'seq': ['ctrl+c'], 'image': None},
+    '7': {'seq': ['ctrl+v'], 'image': None},
+    '8': {'seq': ['f5'], 'image': None},
+    '9': {'seq': ['esc'], 'image': None},
+    '10': {'seq': ['enter'], 'image': None},
+    '11': {'seq': ['tab'], 'image': None},
+    '12': {'seq': ['space'], 'image': None}
 }
 
 @app.route('/')
 def index():
-    # Pasa el mapping a la plantilla
-    # Pass the mapping to the template
-    return render_template('index.html', key_sequences=key_sequences)
+    # Pass the button configuration to the template
+    return render_template('index.html', buttons=buttons)
 
 @app.route('/press/<btn_id>', methods=['POST'])
 def press(btn_id):
-    seq = key_sequences.get(btn_id)
-    if not seq:
+    btn = buttons.get(btn_id)
+    if not btn:
         return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
 
-    # Envía la secuencia de teclas completa usando send_key_sequence
+    seq = btn['seq']
     # Send the entire key sequence using send_key_sequence
     send_key_sequence(" ".join(seq))
     return jsonify({'status': 'ok', 'pressed': seq})
