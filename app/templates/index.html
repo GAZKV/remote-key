@@ -61,10 +61,18 @@
       right: 1rem;
       z-index: 1050;
     }
+    #safeModeBtn {
+      position: fixed;
+      top: 1rem;
+      right: 4rem;
+      z-index: 1050;
+    }
   </style>
 </head>
 <body>
   <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+
+  <button id="safeModeBtn" class="btn btn-success" title="Modo seguro"><i class="bi bi-unlock"></i></button>
 
   <button id="configBtn" class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#configPanel" aria-controls="configPanel">⚙</button>
 
@@ -159,6 +167,26 @@
       toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
       toast.show();
     }
+    let safeMode = false;
+    function updateSafeModeButton() {
+      const btn = document.getElementById('safeModeBtn');
+      if (!btn) return;
+      btn.innerHTML = safeMode ? '<i class="bi bi-lock-fill"></i>' : '<i class="bi bi-unlock"></i>';
+      btn.classList.toggle('btn-danger', safeMode);
+      btn.classList.toggle('btn-success', !safeMode);
+    }
+    function fetchSafeMode() {
+      return fetch('/safe_mode')
+        .then(r => r.json())
+        .then(d => { safeMode = d.enabled; updateSafeModeButton(); return safeMode; });
+    }
+    function setSafeMode(enabled) {
+      return fetch('/safe_mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      }).then(r => r.json()).then(d => { safeMode = d.enabled; updateSafeModeButton(); return safeMode; });
+    }
     function sendPress(id) {
       const btn = document.querySelector(`[data-btn="${id}"]`);
       const type = btn?.dataset.type || 'keys';
@@ -168,6 +196,10 @@
       const url = btn?.dataset.url || '';
       const bodyData = btn?.dataset.body || '';
       const critical = btn?.dataset.critical === 'true';
+      if (safeMode) {
+        showToast('Modo seguro activo', 'warning');
+        return;
+      }
       if (critical) {
         confirmCritical().then(accepted => {
           if (accepted) doSend();
@@ -803,7 +835,7 @@ function generateId(existing) {
       reader.readAsText(file);
     }
 
-    let configContainer, grid;
+  let configContainer, grid, safeModeBtn;
 
     function addNewButton() {
       const ids = getIdList() || Object.keys(defaults);
@@ -819,9 +851,18 @@ function generateId(existing) {
       setupForm(form, button, newId);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('DOMContentLoaded', () => {
       configContainer = document.getElementById('configContainer');
       grid = document.getElementById('buttonGrid');
+      safeModeBtn = document.getElementById('safeModeBtn');
+      if (safeModeBtn) {
+        safeModeBtn.addEventListener('click', () => {
+          setSafeMode(!safeMode).then(state => {
+            showToast(state ? 'Modo seguro activado' : 'Modo seguro desactivado', state ? 'warning' : 'success');
+          });
+        });
+      }
+      fetchSafeMode();
 
       const profileSelect = document.getElementById('profileSelect');
       const newProfileBtn = document.getElementById('newProfileBtn');
