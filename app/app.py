@@ -256,6 +256,40 @@ def press(btn_id):
     pressed = seq if isinstance(seq, list) else str(seq).split()
     return jsonify({'status': 'ok', 'pressed': pressed})
 
+
+@app.route('/export', methods=['GET'])
+def export_config():
+    """Return the current button configuration as JSON."""
+    return jsonify(buttons)
+
+
+@app.route('/import', methods=['POST'])
+def import_config():
+    """Import configuration from a JSON payload and update server state."""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({'status': 'error', 'message': 'Invalid config'}), 400
+
+    for btn_id, cfg in data.items():
+        if not isinstance(cfg, dict):
+            continue
+        btn = buttons.setdefault(str(btn_id), {})
+        for key in (
+            'label',
+            'type',
+            'cmd',
+            'seq',
+            'image',
+            'color',
+            'method',
+            'url',
+            'body',
+        ):
+            if key in cfg:
+                btn[key] = cfg[key]
+
+    return jsonify({'status': 'ok'})
+
 if __name__ == '__main__':
     # Atención: es posible que necesites ejecutar con privilegios
     # en algunos sistemas para que el envío de teclas funcione correctamente.
