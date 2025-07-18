@@ -36,7 +36,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '2': {
         'label': 'Botón 2 / Button 2',
@@ -49,7 +50,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '3': {
         'label': 'Botón 3 / Button 3',
@@ -62,7 +64,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '4': {
         'label': 'Botón 4 / Button 4',
@@ -75,7 +78,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '5': {
         'label': 'Botón 5 / Button 5',
@@ -88,7 +92,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '6': {
         'label': 'Botón 6 / Button 6',
@@ -101,7 +106,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '7': {
         'label': 'Botón 7 / Button 7',
@@ -114,7 +120,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '8': {
         'label': 'Botón 8 / Button 8',
@@ -127,7 +134,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '9': {
         'label': 'Botón 9 / Button 9',
@@ -140,7 +148,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '10': {
         'label': 'Botón 10 / Button 10',
@@ -153,7 +162,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '11': {
         'label': 'Botón 11 / Button 11',
@@ -166,7 +176,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     },
     '12': {
         'label': 'Botón 12 / Button 12',
@@ -179,7 +190,8 @@ buttons = {
         'sound': None,
         'method': 'GET',
         'url': '',
-        'body': None
+        'body': None,
+        'critical': False
     }
 }
 
@@ -206,6 +218,8 @@ def update_config(btn_id):
         btn['effect'] = data.get('effect')
     if 'sound' in data:
         btn['sound'] = data.get('sound')
+    if 'critical' in data:
+        btn['critical'] = bool(data.get('critical'))
     if btn['type'] == 'shell':
         btn['cmd'] = str(data.get('cmd', '')).strip()
         return jsonify({'status': 'ok', 'type': 'shell', 'cmd': btn['cmd']})
@@ -327,6 +341,7 @@ def import_config():
             'method',
             'url',
             'body',
+            'critical',
         ):
             if key in cfg:
                 btn[key] = cfg[key]

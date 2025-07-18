@@ -115,6 +115,24 @@
       </div>
     </div>
 
+    <div class="modal fade" id="confirmCriticalModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmar acción</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            ¿Ejecutar esta acción crítica?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="confirmCriticalYes">Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   <script>
     function playEffect(button) {
       if (!button) return;
@@ -149,6 +167,15 @@
       const method = btn?.dataset.method || 'GET';
       const url = btn?.dataset.url || '';
       const bodyData = btn?.dataset.body || '';
+      const critical = btn?.dataset.critical === 'true';
+      if (critical) {
+        confirmCritical().then(accepted => {
+          if (accepted) doSend();
+        });
+        return;
+      }
+      doSend();
+      function doSend() {
       if (type === 'shell') {
         if (!cmd) return;
         if (!confirm(`Ejecutar comando:\n${cmd}?`)) return;
@@ -176,6 +203,7 @@
           console.error(err);
           showToast('No se pudo conectar al servidor / Could not connect to the server.', 'danger');
         });
+      }
     }
 
     function getProfiles() {
@@ -235,10 +263,34 @@
         }
         yesBtn.addEventListener('click', onConfirm, { once: true });
         modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
-        modal.show();
-      });
-    }
-    const defaults = {{ buttons | tojson }};
+      modal.show();
+    });
+  }
+
+  function confirmCritical() {
+    const modalEl = document.getElementById('confirmCriticalModal');
+    const modal = new bootstrap.Modal(modalEl);
+    const yesBtn = document.getElementById('confirmCriticalYes');
+    return new Promise(resolve => {
+      let confirmed = false;
+      const onConfirm = () => {
+        confirmed = true;
+        bootstrap.Modal.getInstance(modalEl).hide();
+      };
+      const onHidden = () => {
+        cleanup();
+        resolve(confirmed);
+      };
+      function cleanup() {
+        yesBtn.removeEventListener('click', onConfirm);
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+      }
+      yesBtn.addEventListener('click', onConfirm, { once: true });
+      modalEl.addEventListener('hidden.bs.modal', onHidden, { once: true });
+      modal.show();
+    });
+  }
+  const defaults = {{ buttons | tojson }};
 
     function createButton(id, cfg) {
       const btn = document.createElement('button');
@@ -252,6 +304,7 @@
       btn.dataset.body = cfg.body || '';
       btn.dataset.effect = cfg.effect || 'anim';
       btn.dataset.sound = cfg.sound || '';
+      btn.dataset.critical = cfg.critical ? 'true' : 'false';
       btn.dataset.image = cfg.image || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
@@ -322,6 +375,10 @@
             <input type="file" class="form-control sound-file mt-2${cfg.effect === 'sound' ? '' : ' d-none'}" accept="audio/*">
             <input type="text" class="form-control sound-input mt-2${cfg.effect === 'sound' ? '' : ' d-none'}" value="${cfg.sound || ''}" placeholder="URL o base64">
           </div>
+          <div class="form-check form-switch mb-2">
+            <input type="checkbox" class="form-check-input critical-check"${cfg.critical ? ' checked' : ''}>
+            <label class="form-check-label">Acción crítica</label>
+          </div>
           <div class="mb-2 seq-group${(cfg.type || 'keys') === 'keys' ? '' : ' d-none'}">
             <label class="form-label">Secuencia / Sequence</label>
             <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
@@ -357,6 +414,7 @@
       const urlInput = form.querySelector('.url-input');
       const methodInput = form.querySelector('.method-input');
       const bodyInput = form.querySelector('.body-input');
+      const criticalCheck = form.querySelector('.critical-check');
       const seqGroup = form.querySelector('.seq-group');
       const cmdGroup = form.querySelector('.cmd-group');
       const httpGroup = form.querySelector('.http-group');
@@ -397,8 +455,8 @@
           cmd: cmdInput.value.trim(),
           method: methodInput.value.trim(),
           url: urlInput.value.trim(),
-          body: bodyInput.value
-          ,
+          body: bodyInput.value,
+          critical: criticalCheck.checked,
           effect: effectSelect.value,
           sound: soundInput.value.trim()
         });
@@ -414,6 +472,7 @@
             body: bodyInput.value,
             image: imgInput.value.trim(),
             color: colorInput.value,
+            critical: criticalCheck.checked,
             effect: effectSelect.value,
             sound: soundInput.value.trim()
           })
@@ -457,6 +516,7 @@
       button.dataset.body = bodyInput.value;
       button.dataset.effect = effectSelect.value;
       button.dataset.sound = soundInput.value.trim();
+      button.dataset.critical = criticalCheck.checked;
 
       toggleGroups();
       applyStyles();
@@ -538,6 +598,11 @@
         saveCurrent();
       });
 
+      criticalCheck.addEventListener('change', () => {
+        button.dataset.critical = criticalCheck.checked;
+        saveCurrent();
+      });
+
       if (soundFile) {
         soundFile.addEventListener('change', () => {
           if (!soundFile.files.length) return;
@@ -584,6 +649,7 @@
               button.dataset.body = bodyInput.value;
               button.dataset.effect = effectSelect.value;
               button.dataset.sound = soundInput.value.trim();
+              button.dataset.critical = criticalCheck.checked;
             }
           })
           .catch(() => {});
@@ -604,7 +670,8 @@
               url: urlInput.value.trim(),
               body: bodyInput.value,
               effect: effectSelect.value,
-              sound: soundInput.value.trim()
+              sound: soundInput.value.trim(),
+              critical: criticalCheck.checked
             })
           }).catch(() => {});
           if (typeSelect.value === 'shell') {
@@ -621,6 +688,7 @@
           button.dataset.body = bodyInput.value;
           button.dataset.effect = effectSelect.value;
           button.dataset.sound = soundInput.value.trim();
+          button.dataset.critical = criticalCheck.checked;
           saveCurrent();
         });
       }
@@ -649,6 +717,7 @@
           button.dataset.body = bodyInput.value;
           button.dataset.effect = effectSelect.value;
           button.dataset.sound = soundInput.value.trim();
+          button.dataset.critical = criticalCheck.checked;
           saveCurrent();
         };
         urlInput.addEventListener('change', updateHttp);
@@ -741,7 +810,7 @@ function generateId(existing) {
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
-      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color', method: 'GET', url: '', body: '', effect: 'anim', sound: '' };
+      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color', method: 'GET', url: '', body: '', effect: 'anim', sound: '', critical: false };
       saveConfig(newId, cfg);
       const button = createButton(newId, cfg);
       grid.appendChild(button);
@@ -852,7 +921,8 @@ function generateId(existing) {
           type: saved.type || def.type || 'keys',
           bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color'))),
           effect: saved.effect || def.effect || 'anim',
-          sound: saved.sound !== undefined ? saved.sound : (def.sound || '')
+          sound: saved.sound !== undefined ? saved.sound : (def.sound || ''),
+          critical: saved.critical !== undefined ? saved.critical : (def.critical || false)
         };
         const button = createButton(id, cfg);
         grid.appendChild(button);
