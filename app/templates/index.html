@@ -73,6 +73,18 @@
       <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body" id="configContainer">
+      <div class="mb-3">
+        <label class="form-label">Perfil</label>
+        <div class="input-group">
+          <select id="profileSelect" class="form-select"></select>
+          <button id="newProfileBtn" class="btn btn-outline-success" type="button" title="Nuevo perfil">
+            <i class="bi bi-plus"></i>
+          </button>
+          <button id="deleteProfileBtn" class="btn btn-outline-danger" type="button" title="Eliminar perfil">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </div>
       <button id="addButton" type="button" class="btn btn-success w-100 mb-3">Añadir nuevo botón</button>
       <button id="exportBtn" type="button" class="btn btn-outline-primary w-100 mb-3">Descargar configuración</button>
       <input id="importFile" type="file" accept="application/json" class="d-none">
@@ -142,13 +154,38 @@
         });
     }
 
+    function getProfiles() {
+      try {
+        return JSON.parse(localStorage.getItem('profiles') || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveProfiles(list) {
+      localStorage.setItem('profiles', JSON.stringify(list));
+    }
+
+    function getCurrentProfile() {
+      return localStorage.getItem('current_profile') || 'default';
+    }
+
+    function setCurrentProfile(name) {
+      localStorage.setItem('current_profile', name);
+    }
+
+    function storageKey(base) {
+      const p = getCurrentProfile();
+      return p === 'default' ? base : `profile_${p}_${base}`;
+    }
+
     function saveConfig(id, cfg) {
-      localStorage.setItem('config_' + id, JSON.stringify(cfg));
+      localStorage.setItem(storageKey('config_' + id), JSON.stringify(cfg));
     }
 
     function loadConfig(id) {
       try {
-        return JSON.parse(localStorage.getItem('config_' + id) || 'null');
+        return JSON.parse(localStorage.getItem(storageKey('config_' + id)) || 'null');
       } catch (e) {
         return null;
       }
@@ -326,7 +363,7 @@
             if (!confirmed) return;
             form.remove();
             button.remove();
-            localStorage.removeItem('config_' + id);
+            localStorage.removeItem(storageKey('config_' + id));
             const ids = getIdList() || [];
             const idx = ids.indexOf(id);
             if (idx !== -1) {
@@ -504,14 +541,14 @@
 
     function getIdList() {
       try {
-        return JSON.parse(localStorage.getItem('button_ids') || 'null');
+        return JSON.parse(localStorage.getItem(storageKey('button_ids')) || 'null');
       } catch (e) {
         return null;
       }
     }
 
     function saveIdList(ids) {
-      localStorage.setItem('button_ids', JSON.stringify(ids));
+      localStorage.setItem(storageKey('button_ids'), JSON.stringify(ids));
     }
 
 function generateId(existing) {
@@ -555,7 +592,7 @@ function generateId(existing) {
               const ids = Object.keys(data);
               const current = getIdList() || [];
               current.forEach(id => {
-                if (!ids.includes(id)) localStorage.removeItem('config_' + id);
+                if (!ids.includes(id)) localStorage.removeItem(storageKey('config_' + id));
               });
               saveIdList(ids);
               ids.forEach(id => saveConfig(id, data[id]));
@@ -588,6 +625,67 @@ function generateId(existing) {
     window.addEventListener('DOMContentLoaded', () => {
       configContainer = document.getElementById('configContainer');
       grid = document.getElementById('buttonGrid');
+
+      const profileSelect = document.getElementById('profileSelect');
+      const newProfileBtn = document.getElementById('newProfileBtn');
+      const deleteProfileBtn = document.getElementById('deleteProfileBtn');
+
+      let profiles = getProfiles();
+      if (!profiles) {
+        profiles = ['default'];
+        saveProfiles(profiles);
+      }
+      let current = getCurrentProfile();
+      if (!profiles.includes(current)) {
+        profiles.push(current);
+        saveProfiles(profiles);
+      }
+
+      if (profileSelect) {
+        profileSelect.innerHTML = profiles
+          .map(p => `<option value="${p}"${p === current ? ' selected' : ''}>${p}</option>`)
+          .join('');
+        profileSelect.addEventListener('change', () => {
+          setCurrentProfile(profileSelect.value);
+          location.reload();
+        });
+      }
+
+      if (newProfileBtn) {
+        newProfileBtn.addEventListener('click', () => {
+          const name = prompt('Nombre del perfil');
+          if (!name) return;
+          if (profiles.includes(name)) {
+            alert('El perfil ya existe');
+            return;
+          }
+          profiles.push(name);
+          saveProfiles(profiles);
+          setCurrentProfile(name);
+          saveIdList(Object.keys(defaults));
+          Object.keys(defaults).forEach(id => saveConfig(id, defaults[id]));
+          location.reload();
+        });
+      }
+
+      if (deleteProfileBtn) {
+        deleteProfileBtn.addEventListener('click', () => {
+          current = getCurrentProfile();
+          if (current === 'default') {
+            alert('No se puede eliminar el perfil por defecto');
+            return;
+          }
+          if (!confirm('¿Eliminar perfil actual?')) return;
+          const ids = getIdList() || [];
+          ids.forEach(id => localStorage.removeItem(storageKey('config_' + id)));
+          localStorage.removeItem(storageKey('button_ids'));
+          profiles = profiles.filter(p => p !== current);
+          saveProfiles(profiles);
+          setCurrentProfile(profiles[0] || 'default');
+          location.reload();
+        });
+      }
+
       const addBtn = document.getElementById('addButton');
       if (addBtn) addBtn.addEventListener('click', addNewButton);
       const exportBtn = document.getElementById('exportBtn');
