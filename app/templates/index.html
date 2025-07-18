@@ -325,7 +325,7 @@
           <div class="mb-2 seq-group${(cfg.type || 'keys') === 'keys' ? '' : ' d-none'}">
             <label class="form-label">Secuencia / Sequence</label>
             <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
-            <div class="form-text">Ej: <code>ctrl+c wait 500 ctrl+v</code> &mdash; usa <code>wait &lt;ms&gt;</code> para pausar.</div>
+            <div class="form-text">Ej: <code>ctrl+c wait 500 ctrl+v</code> &mdash; usa <code>wait &lt;ms&gt;</code> para pausar. Teclas especiales: <code>f1</code>&ndash;<code>f12</code>, <code>left_click</code>, <code>right_click</code>, <code>numpad_0</code>&ndash;<code>numpad_9</code>.</div>
           </div>
           <div class="mb-2 cmd-group${cfg.type === 'shell' ? '' : ' d-none'}">
             <label class="form-label">Comando</label>
