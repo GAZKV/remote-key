@@ -11,6 +11,14 @@ import requests
 
 app = Flask(__name__)
 
+# --- Safe mode handling ---
+SAFE_MODE_FILE = os.path.join(os.path.dirname(__file__), 'safe_mode.txt')
+try:
+    with open(SAFE_MODE_FILE) as f:
+        SAFE_MODE = f.read().strip() == '1'
+except FileNotFoundError:
+    SAFE_MODE = False
+
 
 SAFE_CMD = re.compile(r'^[\w\-./ ]+$')
 
@@ -252,6 +260,9 @@ def press(btn_id):
     provide the sequence directly, so we simply execute it.
     """
 
+    if SAFE_MODE:
+        return jsonify({'status': 'error', 'message': 'Safe mode active'}), 403
+
     data = request.get_json(silent=True) or {}
     req_type = data.get('type') or request.values.get('type') or 'keys'
     cmd_val = data.get('cmd') or request.values.get('cmd')
@@ -316,6 +327,22 @@ def press(btn_id):
 def export_config():
     """Return the current button configuration as JSON."""
     return jsonify(buttons)
+
+
+@app.route('/safe_mode', methods=['GET', 'POST'])
+def safe_mode_toggle():
+    """Get or set global safe mode."""
+    global SAFE_MODE
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        SAFE_MODE = bool(data.get('enabled'))
+        try:
+            with open(SAFE_MODE_FILE, 'w') as f:
+                f.write('1' if SAFE_MODE else '0')
+        except Exception:
+            pass
+        return jsonify({'enabled': SAFE_MODE})
+    return jsonify({'enabled': SAFE_MODE})
 
 
 @app.route('/import', methods=['POST'])
