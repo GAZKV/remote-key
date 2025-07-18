@@ -56,7 +56,21 @@ try:
             for k in reversed(keys):
                 key_up(k)
 
-        backend = SimpleNamespace(press=press, hotkey=hotkey)
+        def click(button='left'):
+            button = button.lower()
+            mapping = {
+                'left': (win32con.MOUSEEVENTF_LEFTDOWN, win32con.MOUSEEVENTF_LEFTUP),
+                'right': (win32con.MOUSEEVENTF_RIGHTDOWN, win32con.MOUSEEVENTF_RIGHTUP),
+                'middle': (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP),
+            }
+            events = mapping.get(button)
+            if not events:
+                raise ValueError(f'Unsupported mouse button: {button}')
+            down, up = events
+            win32api.mouse_event(down, 0, 0)
+            win32api.mouse_event(up, 0, 0)
+
+        backend = SimpleNamespace(press=press, hotkey=hotkey, click=click)
         _backend_name = 'pywin32'
     else:
         raise ImportError
@@ -73,8 +87,25 @@ except Exception:
     _backend_name = 'pyautogui'
 
 
+_MOUSE_MAP = {
+    'left_click': 'left',
+    'right_click': 'right',
+    'middle_click': 'middle',
+}
+
+_NUMPAD_MAP = {f'numpad_{i}': f'num{i}' for i in range(10)}
+
+
 def send_key_combo(combo: str) -> None:
-    keys = combo.split('+')
+    combo_lower = combo.lower()
+    if combo_lower in _MOUSE_MAP:
+        backend.click(button=_MOUSE_MAP[combo_lower])
+        return
+
+    keys = [
+        _NUMPAD_MAP.get(k.lower(), k.lower())
+        for k in combo.split('+')
+    ]
     if len(keys) == 1:
         backend.press(keys[0])
     else:
