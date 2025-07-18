@@ -10,6 +10,7 @@ A small Flask web application to trigger keyboard shortcuts from a browser.
    pip install -r requirements.txt
    ```
    On Windows you can run `install.cmd` instead, which performs the same installation step using the virtual environment's Python interpreter.
+   Installing `pywin32` is optional; if it's missing, the backend provides fallback key codes so basic functionality still works.
 
 ## Running the server
 
