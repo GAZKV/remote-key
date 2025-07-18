@@ -106,11 +106,17 @@
         btn.classList.add('active-anim');
         setTimeout(() => btn.classList.remove('active-anim'), 200);
       }
+      const type = btn?.dataset.type || 'keys';
       const seq = btn?.dataset.seq || '';
+      const cmd = btn?.dataset.cmd || '';
+      if (type === 'shell') {
+        if (!cmd) return;
+        if (!confirm(`Ejecutar comando:\n${cmd}?`)) return;
+      }
       fetch(`/press/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ seq })
+        body: JSON.stringify({ type, seq, cmd })
       })
         .then(r => r.json())
         .then(resp => {
@@ -167,7 +173,9 @@
       const btn = document.createElement('button');
       btn.className = 'btn btn-primary btn-custom';
       btn.dataset.btn = id;
+      btn.dataset.type = cfg.type || 'keys';
       btn.dataset.seq = (cfg.seq || []).join('\n');
+      btn.dataset.cmd = cfg.cmd || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -175,7 +183,8 @@
       } else if (cfg.color) {
         btn.style.backgroundColor = cfg.color;
       }
-      btn.innerHTML = `<span class="btn-label">${cfg.label}</span><br><small class="seq-display">${(cfg.seq || []).join(' + ')}</small>`;
+      const display = btn.dataset.type === 'shell' ? (cfg.cmd || '') : (cfg.seq || []).join(' + ');
+      btn.innerHTML = `<span class="btn-label">${cfg.label}</span><br><small class="seq-display">${display}</small>`;
       return btn;
     }
 
@@ -196,6 +205,13 @@
             <input type="text" class="form-control label-input" value="${cfg.label}">
           </div>
           <div class="mb-2">
+            <label class="form-label">Tipo de acción</label>
+            <select class="form-select action-type">
+              <option value="keys"${(cfg.type || 'keys') === 'keys' ? ' selected' : ''}>Secuencia de teclas</option>
+              <option value="shell"${cfg.type === 'shell' ? ' selected' : ''}>Comando shell</option>
+            </select>
+          </div>
+          <div class="mb-2">
             <label class="form-label">Fondo</label>
             <select class="form-select bg-choice">
               <option value="image"${bgType === 'image' ? ' selected' : ''}>Imagen</option>
@@ -210,10 +226,14 @@
             <label class="form-label">Color</label>
             <input type="color" class="form-control form-control-color" value="${cfg.color || '#ffffff'}">
           </div>
-          <div class="mb-2">
+          <div class="mb-2 seq-group${(cfg.type || 'keys') === 'keys' ? '' : ' d-none'}">
             <label class="form-label">Secuencia / Sequence</label>
             <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
             <div class="form-text">Ej: <code>ctrl+c wait 500 ctrl+v</code> &mdash; usa <code>wait &lt;ms&gt;</code> para pausar.</div>
+          </div>
+          <div class="mb-2 cmd-group${cfg.type === 'shell' ? '' : ' d-none'}">
+            <label class="form-label">Comando</label>
+            <input type="text" class="form-control cmd-input" value="${cfg.cmd || ''}">
           </div>`;
       return form;
     }
@@ -223,7 +243,11 @@
       const bgSelect = form.querySelector('.bg-choice');
       const imgInput = form.querySelector('.image-group input');
       const colorInput = form.querySelector('.color-group input');
+      const typeSelect = form.querySelector('.action-type');
       const seqInput = form.querySelector('.seq-input');
+      const cmdInput = form.querySelector('.cmd-input');
+      const seqGroup = form.querySelector('.seq-group');
+      const cmdGroup = form.querySelector('.cmd-group');
       const deleteBtn = form.querySelector('.delete-btn');
 
       const labelSpan = button.querySelector('.btn-label');
@@ -232,6 +256,8 @@
       const toggleGroups = () => {
         form.querySelector('.image-group').classList.toggle('d-none', bgSelect.value !== 'image');
         form.querySelector('.color-group').classList.toggle('d-none', bgSelect.value !== 'color');
+        seqGroup.classList.toggle('d-none', typeSelect.value !== 'keys');
+        cmdGroup.classList.toggle('d-none', typeSelect.value !== 'shell');
       };
 
       const applyStyles = () => {
@@ -251,7 +277,9 @@
           bg: bgSelect.value,
           image: imgInput.value.trim(),
           color: colorInput.value,
-          seq: seqInput.value.trim()
+          type: typeSelect.value,
+          seq: seqInput.value.trim(),
+          cmd: cmdInput.value.trim()
         });
       };
 
@@ -277,22 +305,31 @@
         }
 
       labelSpan.textContent = labelInput.value;
-      seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
+      seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seqInput.value.split(/\s+/).join(' + ');
       button.dataset.seq = seqInput.value.trim();
+      button.dataset.type = typeSelect.value;
+      button.dataset.cmd = cmdInput.value.trim();
 
       toggleGroups();
       applyStyles();
 
-      if (seqInput.value.trim()) {
+      if (seqInput.value.trim() || cmdInput.value.trim()) {
         fetch(`/config/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ seq: seqInput.value.trim() })
+          body: JSON.stringify({ type: typeSelect.value, seq: seqInput.value.trim(), cmd: cmdInput.value.trim() })
         }).catch(() => {});
       }
 
       labelInput.addEventListener('input', () => {
         labelSpan.textContent = labelInput.value;
+        saveCurrent();
+      });
+
+      typeSelect.addEventListener('change', () => {
+        toggleGroups();
+        seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seqInput.value.split(/\s+/).join(' + ');
+        button.dataset.type = typeSelect.value;
         saveCurrent();
       });
 
@@ -312,23 +349,39 @@
         saveCurrent();
       });
 
-        seqInput.addEventListener('change', () => {
-          const seq = seqInput.value.trim();
+      seqInput.addEventListener('change', () => {
+        const seq = seqInput.value.trim();
+        fetch(`/config/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: typeSelect.value, seq, cmd: cmdInput.value.trim() })
+        })
+          .then(r => r.json())
+          .then(resp => {
+            if (resp.status === 'ok') {
+              seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seq.split(/\s+/).join(' + ');
+              button.dataset.seq = seq;
+              button.dataset.type = typeSelect.value;
+            }
+          })
+          .catch(() => {});
+        saveCurrent();
+      });
+
+      if (cmdInput) {
+        cmdInput.addEventListener('change', () => {
+          const cmd = cmdInput.value.trim();
           fetch(`/config/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ seq })
-          })
-            .then(r => r.json())
-            .then(resp => {
-              if (resp.status === 'ok') {
-                seqDisplay.textContent = seq.split(/\s+/).join(' + ');
-                button.dataset.seq = seq;
-              }
-            })
-            .catch(() => {});
-        saveCurrent();
-      });
+            body: JSON.stringify({ type: typeSelect.value, seq: seqInput.value.trim(), cmd })
+          }).catch(() => {});
+          seqDisplay.textContent = typeSelect.value === 'shell' ? cmd : seqInput.value.split(/\s+/).join(' + ');
+          button.dataset.cmd = cmd;
+          button.dataset.type = typeSelect.value;
+          saveCurrent();
+        });
+      }
     }
 
     function getIdList() {
@@ -356,7 +409,7 @@
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
-      const cfg = { label: `Botón ${newId}`, seq: [], image: '', color: '', bg: 'color' };
+      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color' };
       saveConfig(newId, cfg);
       const button = createButton(newId, cfg);
       grid.appendChild(button);
@@ -385,6 +438,8 @@
           image: saved.image !== undefined ? saved.image : def.image,
           color: saved.color !== undefined ? saved.color : def.color,
           seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
+          cmd: saved.cmd !== undefined ? saved.cmd : (def.cmd || ''),
+          type: saved.type || def.type || 'keys',
           bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color')))
         };
         const button = createButton(id, cfg);
