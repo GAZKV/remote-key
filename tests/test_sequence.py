@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import patch
-import sys, types
+import sys, types, os
+# Ensure repo root is on path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Provide a dummy pyautogui so app.app can be imported without X server
 mock_pg = types.SimpleNamespace(FAILSAFE=False, press=lambda *a, **k: None, hotkey=lambda *a, **k: None)
