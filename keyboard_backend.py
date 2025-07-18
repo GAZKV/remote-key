@@ -2,7 +2,15 @@ import sys
 from types import SimpleNamespace
 
 _backend_name = 'pyautogui'
-_platform = sys.platform
+_platform_raw = sys.platform
+if _platform_raw.startswith('win'):
+    _platform = 'windows'
+elif _platform_raw.startswith('linux'):
+    _platform = 'linux'
+elif _platform_raw == 'darwin':
+    _platform = 'darwin'
+else:
+    _platform = _platform_raw
 
 try:
     if _platform.startswith('win'):
@@ -53,7 +61,13 @@ try:
     else:
         raise ImportError
 except Exception:
-    import pyautogui
+    try:
+        import pyautogui
+    except Exception as exc:
+        raise ImportError(
+            'pyautogui is required on non-Windows platforms. ' \
+            'Install python3-Xlib on Linux or pyobjc on macOS.'
+        ) from exc
     pyautogui.FAILSAFE = False
     backend = pyautogui
     _backend_name = 'pyautogui'

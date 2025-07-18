@@ -26,9 +26,9 @@ The application relies on a small module (`keyboard_backend.py`) to send key eve
 ### OS support
 
 * **Windows** – Works with `pyautogui`. Installing `pywin32` enables the alternate backend that uses the native `SendInput` API.
-* **Linux/macOS** – Uses `pyautogui`. Additional packages such as `python3-xlib` may be required on Linux.
+* **Linux/macOS** – Uses `pyautogui`. On Linux you must also install `python3-xlib` (via pip or your package manager). On macOS `pyobjc` (or `pyobjc-core`/`pyobjc-framework-Quartz`) is needed so `pyautogui` can access the accessibility APIs.
 
-On Linux, additional system packages like `python3-xlib` may be required for `pyautogui` to function correctly.
+On Linux, additional system packages like `python3-xlib` may be required for `pyautogui` to function correctly. macOS users should ensure the `pyobjc` dependencies are installed.
 
 ## Using the interface
 
