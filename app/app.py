@@ -16,9 +16,9 @@ SAFE_CMD = re.compile(r'^[\w\-./ ]+$')
 
 
 def run_shell_command(cmd: str):
-    """Run a shell command safely with basic validation."""
+    """Run a shell command after validating it against ``SAFE_CMD``."""
     if not isinstance(cmd, str) or not SAFE_CMD.fullmatch(cmd.strip()):
-        raise ValueError('Unsafe command')
+        raise ValueError('Command rejected')
     return subprocess.run(shlex.split(cmd), capture_output=True, text=True)
 
 # Map each button to its configuration including
@@ -253,7 +253,10 @@ def press(btn_id):
             cmd = cmd_val if cmd_val not in (None, '') else cfg.get('cmd')
             if not cmd:
                 return jsonify({'status': 'error', 'message': 'Comando vacío'}), 400
-            result = run_shell_command(cmd)
+            try:
+                result = run_shell_command(cmd)
+            except ValueError as exc:
+                return jsonify({'status': 'error', 'message': str(exc)}), 400
             return jsonify({'status': 'ok', 'stdout': result.stdout})
         elif action == 'http':
             method = (method_val or cfg.get('method', 'GET')).upper()
@@ -272,7 +275,10 @@ def press(btn_id):
         if req_type == 'shell':
             if not cmd_val:
                 return jsonify({'status': 'error', 'message': 'Comando vacío'}), 400
-            result = run_shell_command(cmd_val)
+            try:
+                result = run_shell_command(cmd_val)
+            except ValueError as exc:
+                return jsonify({'status': 'error', 'message': str(exc)}), 400
             return jsonify({'status': 'ok', 'stdout': result.stdout})
         elif req_type == 'http':
             if not url_val:
