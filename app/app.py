@@ -22,17 +22,28 @@ def send_key_combo(combo: str) -> None:
         pyautogui.hotkey(*keys)
 
 
-def send_key_sequence(text: str) -> None:
-    """Send a whitespace separated sequence of key combinations.
+def send_key_sequence(seq) -> None:
+    """Send a sequence of key combinations.
 
-    Each segment in ``text`` represents a combination in ``ctrl+alt+del`` style
-    syntax and will be executed in order.
+    ``seq`` can be either a whitespace separated string or a list of strings. In
+    string form, any whitespace (spaces, newlines) is treated as a separator. Each
+    resulting token must use the ``"ctrl+alt+del"`` syntax, where ``+`` denotes
+    simultaneous key presses.
     """
-    text = text.strip()
-    if not text:
+
+    if isinstance(seq, str):
+        text = seq.strip()
+        if not text:
+            return
+        combos = text.split()
+    elif isinstance(seq, list):
+        combos = [str(c).strip() for c in seq if str(c).strip()]
+        if not combos:
+            return
+    else:
         return
 
-    for combo in text.split():
+    for combo in combos:
         send_key_combo(combo)
 
 # Map each button to its configuration including
@@ -127,8 +138,12 @@ def update_config(btn_id):
         return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
 
     data = request.get_json(silent=True) or {}
-    seq_text = data.get('seq', '')
-    btn['seq'] = seq_text.split() if seq_text else []
+    seq_val = data.get('seq', '')
+    if isinstance(seq_val, list):
+        btn['seq'] = [str(s).strip() for s in seq_val if str(s).strip()]
+    else:
+        seq_text = str(seq_val)
+        btn['seq'] = seq_text.split() if seq_text.strip() else []
     return jsonify({'status': 'ok', 'seq': btn['seq']})
 
 @app.route('/press/<btn_id>', methods=['POST'])
@@ -143,19 +158,20 @@ def press(btn_id):
 
     data = request.get_json(silent=True)
     if data and 'seq' in data:
-        seq_text = data.get('seq', '')
+        seq_val = data.get('seq')
     else:
-        seq_text = request.values.get('seq', '')
+        seq_val = request.values.get('seq')
 
     if btn_id in buttons:
-        seq = seq_text.split() if seq_text else buttons[btn_id]['seq']
+        seq = seq_val if seq_val not in (None, '') else buttons[btn_id]['seq']
     else:
-        if not seq_text:
+        if seq_val in (None, ''):
             return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
-        seq = seq_text.split()
+        seq = seq_val
 
-    send_key_sequence(" ".join(seq))
-    return jsonify({'status': 'ok', 'pressed': seq})
+    send_key_sequence(seq)
+    pressed = seq if isinstance(seq, list) else str(seq).split()
+    return jsonify({'status': 'ok', 'pressed': pressed})
 
 if __name__ == '__main__':
     # Atención: es posible que necesites ejecutar con privilegios
