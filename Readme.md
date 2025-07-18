@@ -21,11 +21,11 @@ The server listens on port **8000**. Open `http://localhost:8000` in your browse
 
 ## Notes on privileges
 
-The application relies on a small module (`keyboard_backend.py`) to send key events. It detects the host operating system when the server starts. `pyautogui` is used on all platforms, but on Windows the backend will try to use `pywin32` (or the `SendInput` API) if it is available. Depending on your OS, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
+The application relies on a small module (`keyboard_backend.py`) to send key events. It detects the host operating system when the server starts. `pyautogui` is used on all platforms, but on Windows key presses are sent using the native `SendInput` API directly. Installing `pywin32` is optional. Depending on your OS, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
 
 ### OS support
 
-* **Windows** – Works with `pyautogui`. Installing `pywin32` enables the alternate backend that uses the native `SendInput` API.
+* **Windows** – Works with `pyautogui`. Key events use the native `SendInput` API directly, so `pywin32` is optional.
 * **Linux/macOS** – Uses `pyautogui`. On Linux you must also install `python3-xlib` (via pip or your package manager). On macOS `pyobjc` (or `pyobjc-core`/`pyobjc-framework-Quartz`) is needed so `pyautogui` can access the accessibility APIs.
 
 On Linux, additional system packages like `python3-xlib` may be required for `pyautogui` to function correctly. macOS users should ensure the `pyobjc` dependencies are installed.
