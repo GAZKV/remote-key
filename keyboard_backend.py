@@ -162,20 +162,29 @@ def send_key_combo(combo: str):
 def send_key_sequence(seq):
     import time, re
     tokens = []
-    if isinstance(seq,str):
+    if isinstance(seq, str):
         tokens = seq.strip().split()
-    elif isinstance(seq,list):
+    elif isinstance(seq, list):
         tokens = [str(t).strip() for t in seq if str(t).strip()]
+
+    # Preprocess tokens to merge "wait" with an immediately following integer
+    merged = []
     i = 0
     while i < len(tokens):
         token = tokens[i]
         if token == 'wait' and i + 1 < len(tokens):
             nxt = tokens[i + 1]
-            m2 = re.match(r'^(\d+)(?:ms)?$', nxt)
-            if m2:
-                time.sleep(int(m2.group(1)) / 1000.0)
+            m = re.match(r'^(\d+)(?:ms)?$', nxt)
+            if m:
+                merged.append(f"wait{m.group(1)}")
                 i += 2
                 continue
+        merged.append(token)
+        i += 1
+
+    i = 0
+    while i < len(merged):
+        token = merged[i]
         m = re.match(r'^wait(\d+)(?:ms)?$', token)
         if m:
             time.sleep(int(m.group(1)) / 1000.0)
