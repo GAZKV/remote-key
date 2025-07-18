@@ -14,7 +14,23 @@ else:
     _platform = _platform_raw
 
 if _platform == 'windows':
-    import win32con
+    try:
+        import win32con
+    except ImportError:  # pragma: no cover - simplified constants for tests
+        class win32con:  # type: ignore
+            VK_CONTROL = 0x11
+            VK_MENU = 0x12
+            VK_SHIFT = 0x10
+            VK_LWIN = 0x5B
+            VK_RETURN = 0x0D
+            VK_TAB = 0x09
+            VK_ESCAPE = 0x1B
+            VK_SPACE = 0x20
+            VK_NUMPAD0 = 0x60
+            for _i in range(1, 10):
+                locals()[f'VK_NUMPAD{_i}'] = 0x60 + _i
+            for _i in range(1, 13):
+                locals()[f'VK_F{_i}'] = 0x70 + (_i - 1)
 
     # Mapeo de teclas virtuales (VK codes)
     VK = {
@@ -70,13 +86,16 @@ if _platform == 'windows':
         _anonymous_ = ("_input",)
         _fields_ = [("type", ctypes.c_ulong), ("_input", _INPUT)]
 
-    SendInput = ctypes.windll.user32.SendInput
+    SendInput = ctypes.WinDLL('user32', use_last_error=True).SendInput
 
     def _send_input_keyboard(vk, flags=0):
         extra = ctypes.c_ulong(0)
         ki = KEYBDINPUT(wVk=vk, wScan=0, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(extra))
         inp = INPUT(type=INPUT_KEYBOARD, ki=ki)
-        SendInput(1, ctypes.pointer(inp), ctypes.sizeof(inp))
+        res = SendInput(1, ctypes.pointer(inp), ctypes.sizeof(inp))
+        if res == 0:
+            code = ctypes.get_last_error()
+            raise ctypes.WinError(code)
 
     def key_down(k: str) -> None:
         vk = VK.get(k.lower())
@@ -121,10 +140,10 @@ else:
 
 # Comandos especiales soportados
 _SPECIAL_COMMANDS = {
-    'left_click':'left',
-    'right_click':'right',
-    'middle_click':'middle',
-    **{f'numpad_{i}':f'numpad_{i}' for i in range(10)}
+    'left_click': 'left',
+    'right_click': 'right',
+    'middle_click': 'middle',
+    **{f'numpad_{i}': f'num{i}' for i in range(10)},
 }
 
 def send_key_combo(combo: str):
@@ -148,14 +167,22 @@ def send_key_sequence(seq):
         tokens = seq.strip().split()
     elif isinstance(seq,list):
         tokens = [str(t).strip() for t in seq if str(t).strip()]
-    for token in tokens:
-        if token=='wait':
-            continue
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        if token == 'wait' and i + 1 < len(tokens):
+            nxt = tokens[i + 1]
+            m2 = re.match(r'^(\d+)(?:ms)?$', nxt)
+            if m2:
+                time.sleep(int(m2.group(1)) / 1000.0)
+                i += 2
+                continue
         m = re.match(r'^wait(\d+)(?:ms)?$', token)
         if m:
-            time.sleep(int(m.group(1))/1000.0)
-            continue
-        send_key_combo(token)
+            time.sleep(int(m.group(1)) / 1000.0)
+        else:
+            send_key_combo(token)
+        i += 1
 
 BACKEND_NAME = _backend_name
 PLATFORM = _platform
