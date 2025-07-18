@@ -1,4 +1,6 @@
 import sys
+import ctypes
+from ctypes import wintypes
 from types import SimpleNamespace
 
 _backend_name = 'pyautogui'
@@ -12,80 +14,119 @@ elif _platform_raw == 'darwin':
 else:
     _platform = _platform_raw
 
-try:
-    if _platform.startswith('win'):
-        import win32api
-        import win32con
-        # Map basic keys to Virtual-Key codes
-        VK = {
-            'ctrl': win32con.VK_CONTROL,
-            'alt': win32con.VK_MENU,
-            'shift': win32con.VK_SHIFT,
-            'win': win32con.VK_LWIN,
-            'enter': win32con.VK_RETURN,
-            'tab': win32con.VK_TAB,
-            'esc': win32con.VK_ESCAPE,
-            'space': win32con.VK_SPACE,
-        }
-        for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
-            VK[c.lower()] = getattr(win32con, f'VK_{c}')
-        for n in range(10):
-            VK[str(n)] = getattr(win32con, f'VK_{n}')
-        for n in range(1, 13):
-            VK[f'f{n}'] = getattr(win32con, f'VK_F{n}')
+if _platform == 'windows':
+    user32 = ctypes.windll.user32
 
-        def key_down(k):
-            vk = VK.get(k.lower())
-            if vk is None:
-                raise ValueError(f'Unsupported key: {k}')
-            win32api.keybd_event(vk, 0, 0, 0)
+    INPUT_MOUSE = 0
+    INPUT_KEYBOARD = 1
 
-        def key_up(k):
-            vk = VK.get(k.lower())
-            if vk is None:
-                raise ValueError(f'Unsupported key: {k}')
-            win32api.keybd_event(vk, 0, win32con.KEYEVENTF_KEYUP, 0)
+    KEYEVENTF_KEYUP = 0x0002
 
-        def press(k):
+    MOUSEEVENTF_LEFTDOWN = 0x0002
+    MOUSEEVENTF_LEFTUP = 0x0004
+    MOUSEEVENTF_RIGHTDOWN = 0x0008
+    MOUSEEVENTF_RIGHTUP = 0x0010
+    MOUSEEVENTF_MIDDLEDOWN = 0x0020
+    MOUSEEVENTF_MIDDLEUP = 0x0040
+
+    try:
+        ULONG_PTR = wintypes.ULONG_PTR
+    except AttributeError:
+        ULONG_PTR = ctypes.c_ulong
+
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = [
+            ('wVk', wintypes.WORD),
+            ('wScan', wintypes.WORD),
+            ('dwFlags', wintypes.DWORD),
+            ('time', wintypes.DWORD),
+            ('dwExtraInfo', ULONG_PTR),
+        ]
+
+    class MOUSEINPUT(ctypes.Structure):
+        _fields_ = [
+            ('dx', wintypes.LONG),
+            ('dy', wintypes.LONG),
+            ('mouseData', wintypes.DWORD),
+            ('dwFlags', wintypes.DWORD),
+            ('time', wintypes.DWORD),
+            ('dwExtraInfo', ULONG_PTR),
+        ]
+
+    class _INPUT_UNION(ctypes.Union):
+        _fields_ = [('ki', KEYBDINPUT), ('mi', MOUSEINPUT)]
+
+    class INPUT(ctypes.Structure):
+        _anonymous_ = ('u',)
+        _fields_ = [('type', wintypes.DWORD), ('u', _INPUT_UNION)]
+
+    def _send_input(inp):
+        if user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT)) != 1:
+            raise OSError('SendInput failed')
+
+    VK = {
+        'ctrl': 0x11,
+        'alt': 0x12,
+        'shift': 0x10,
+        'win': 0x5B,
+        'enter': 0x0D,
+        'tab': 0x09,
+        'esc': 0x1B,
+        'space': 0x20,
+    }
+    for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        VK[c.lower()] = ord(c)
+    for n in range(10):
+        VK[str(n)] = 0x30 + n
+    for n in range(1, 13):
+        VK[f'f{n}'] = 0x70 + n - 1
+
+    def key_down(k: str) -> None:
+        vk = VK.get(k.lower())
+        if vk is None:
+            raise ValueError(f'Unsupported key: {k}')
+        inp = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=vk, dwFlags=0))
+        _send_input(inp)
+
+    def key_up(k: str) -> None:
+        vk = VK.get(k.lower())
+        if vk is None:
+            raise ValueError(f'Unsupported key: {k}')
+        inp = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=vk, dwFlags=KEYEVENTF_KEYUP))
+        _send_input(inp)
+
+    def press(k: str) -> None:
+        key_down(k)
+        key_up(k)
+
+    def hotkey(*keys: str) -> None:
+        for k in keys:
             key_down(k)
+        for k in reversed(keys):
             key_up(k)
 
-        def hotkey(*keys):
-            for k in keys:
-                key_down(k)
-            for k in reversed(keys):
-                key_up(k)
+    def click(button: str = 'left') -> None:
+        button = button.lower()
+        mapping = {
+            'left': (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP),
+            'right': (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP),
+            'middle': (MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP),
+        }
+        events = mapping.get(button)
+        if not events:
+            raise ValueError(f'Unsupported mouse button: {button}')
+        for flag in events:
+            inp = INPUT(type=INPUT_MOUSE, mi=MOUSEINPUT(dwFlags=flag))
+            _send_input(inp)
 
-        def click(button='left'):
-            button = button.lower()
-            mapping = {
-                'left': (win32con.MOUSEEVENTF_LEFTDOWN, win32con.MOUSEEVENTF_LEFTUP),
-                'right': (win32con.MOUSEEVENTF_RIGHTDOWN, win32con.MOUSEEVENTF_RIGHTUP),
-                'middle': (win32con.MOUSEEVENTF_MIDDLEDOWN, win32con.MOUSEEVENTF_MIDDLEUP),
-            }
-            events = mapping.get(button)
-            if not events:
-                raise ValueError(f'Unsupported mouse button: {button}')
-            down, up = events
-            win32api.mouse_event(down, 0, 0)
-            win32api.mouse_event(up, 0, 0)
+    backend = SimpleNamespace(press=press, hotkey=hotkey, click=click)
+    _backend_name = 'sendinput'
+else:
+    import pyautogui
 
-        backend = SimpleNamespace(press=press, hotkey=hotkey, click=click)
-        _backend_name = 'pywin32'
-    else:
-        raise ImportError
-except Exception:
-    try:
-        import pyautogui
-    except Exception as exc:
-        raise ImportError(
-            'pyautogui is required on non-Windows platforms. ' \
-            'Install python3-Xlib on Linux or pyobjc on macOS.'
-        ) from exc
     pyautogui.FAILSAFE = False
     backend = pyautogui
     _backend_name = 'pyautogui'
-
 
 _MOUSE_MAP = {
     'left_click': 'left',
@@ -95,22 +136,17 @@ _MOUSE_MAP = {
 
 _NUMPAD_MAP = {f'numpad_{i}': f'num{i}' for i in range(10)}
 
-
 def send_key_combo(combo: str) -> None:
     combo_lower = combo.lower()
     if combo_lower in _MOUSE_MAP:
         backend.click(button=_MOUSE_MAP[combo_lower])
         return
 
-    keys = [
-        _NUMPAD_MAP.get(k.lower(), k.lower())
-        for k in combo.split('+')
-    ]
+    keys = [_NUMPAD_MAP.get(k.lower(), k.lower()) for k in combo.split('+')]
     if len(keys) == 1:
         backend.press(keys[0])
     else:
         backend.hotkey(*keys)
-
 
 def send_key_sequence(seq) -> None:
     if isinstance(seq, str):
@@ -145,7 +181,6 @@ def send_key_sequence(seq) -> None:
 
         send_key_combo(token)
         i += 1
-
 
 BACKEND_NAME = _backend_name
 PLATFORM = _platform
