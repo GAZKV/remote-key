@@ -21,8 +21,8 @@ class BackendPlatformTests(TestCase):
         spec = importlib.util.spec_from_file_location('kb_temp', os.path.join(ROOT, 'keyboard_backend.py'))
         module = importlib.util.module_from_spec(spec)
         with mock.patch.object(sys, 'platform', 'win32'):
-            windll = types.SimpleNamespace(user32=types.SimpleNamespace(SendInput=send_mock))
-            with mock.patch.object(ctypes, 'windll', windll, create=True):
+            user32 = types.SimpleNamespace(SendInput=send_mock)
+            with mock.patch.object(ctypes, 'WinDLL', return_value=user32, create=True):
                 spec.loader.exec_module(module)
         return module
 
@@ -58,3 +58,17 @@ class BackendPlatformTests(TestCase):
         ptr2 = ctypes.cast(args2[1], ctypes.POINTER(kb.INPUT))
         self.assertEqual(ptr2.contents.ki.wVk, 0x41)
         self.assertEqual(ptr2.contents.ki.dwFlags, kb.KEYEVENTF_KEYUP)
+
+    def test_windows_sendinput_error(self):
+        send_mock = mock.Mock(return_value=0)
+        kb = self._load_backend_win(send_mock)
+        def make_exc(code):
+            exc = OSError(code, "err")
+            exc.winerror = code
+            return exc
+
+        with mock.patch('ctypes.get_last_error', return_value=5, create=True), \
+             mock.patch('ctypes.WinError', side_effect=make_exc, create=True):
+            with self.assertRaises(OSError) as ctx:
+                kb.send_key_combo('a')
+        self.assertEqual(ctx.exception.winerror, 5)
