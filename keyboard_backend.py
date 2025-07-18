@@ -150,14 +150,16 @@ def send_key_combo(combo: str):
     if combo_lower in _SPECIAL_COMMANDS and 'click' in combo_lower:
         backend.click(button=_SPECIAL_COMMANDS[combo_lower])
         return
-    if combo_lower in _SPECIAL_COMMANDS and 'numpad' in combo_lower:
-        backend.press(_SPECIAL_COMMANDS[combo_lower])
-        return
-    parts = combo.split('+')
-    if len(parts)==1:
-        backend.press(parts[0].lower())
+
+    parts = [
+        _SPECIAL_COMMANDS.get(p.lower(), p.lower())
+        for p in combo.split('+')
+    ]
+
+    if len(parts) == 1:
+        backend.press(parts[0])
     else:
-        backend.hotkey(*[p.lower() for p in parts])
+        backend.hotkey(*parts)
 
 def send_key_sequence(seq):
     import time, re
