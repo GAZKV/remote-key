@@ -1,5 +1,8 @@
 from flask import Flask, render_template, jsonify, request
+import os
 import sys
+# Ensure imports work when running the script directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import keyboard_backend as kb
 import subprocess
 import shlex
