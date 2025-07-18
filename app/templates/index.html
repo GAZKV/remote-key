@@ -74,6 +74,9 @@
     </div>
     <div class="offcanvas-body" id="configContainer">
       <button id="addButton" type="button" class="btn btn-success w-100 mb-3">Añadir nuevo botón</button>
+      <button id="exportBtn" type="button" class="btn btn-outline-primary w-100 mb-3">Descargar configuración</button>
+      <input id="importFile" type="file" accept="application/json" class="d-none">
+      <button id="importBtn" type="button" class="btn btn-outline-secondary w-100 mb-3">Cargar configuración</button>
       <!-- Forms will be injected here -->
     </div>
     </div>
@@ -511,10 +514,59 @@
       localStorage.setItem('button_ids', JSON.stringify(ids));
     }
 
-    function generateId(existing) {
+function generateId(existing) {
       let i = 1;
       while (existing.includes(String(i))) i++;
       return String(i);
+    }
+
+    function downloadCurrent() {
+      fetch('/export')
+        .then(r => r.json())
+        .then(data => {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'config.json';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        })
+        .catch(() => alert('Error al exportar la configuración'));
+    }
+
+    function uploadConfigFile(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        let data;
+        try {
+          data = JSON.parse(reader.result);
+        } catch (e) {
+          alert('Archivo inválido');
+          return;
+        }
+        fetch('/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+          .then(r => r.json())
+          .then(resp => {
+            if (resp.status === 'ok') {
+              const ids = Object.keys(data);
+              const current = getIdList() || [];
+              current.forEach(id => {
+                if (!ids.includes(id)) localStorage.removeItem('config_' + id);
+              });
+              saveIdList(ids);
+              ids.forEach(id => saveConfig(id, data[id]));
+              location.reload();
+            } else {
+              alert('Error: ' + (resp.message || 'import failed'));
+            }
+          })
+          .catch(() => alert('Error al enviar configuración'));
+      };
+      reader.readAsText(file);
     }
 
     let configContainer, grid;
@@ -538,6 +590,19 @@
       grid = document.getElementById('buttonGrid');
       const addBtn = document.getElementById('addButton');
       if (addBtn) addBtn.addEventListener('click', addNewButton);
+      const exportBtn = document.getElementById('exportBtn');
+      if (exportBtn) exportBtn.addEventListener('click', downloadCurrent);
+      const importBtn = document.getElementById('importBtn');
+      const importFile = document.getElementById('importFile');
+      if (importBtn && importFile) {
+        importBtn.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', () => {
+          if (importFile.files.length) {
+            uploadConfigFile(importFile.files[0]);
+            importFile.value = '';
+          }
+        });
+      }
 
       let ids = getIdList();
       if (!ids) {
