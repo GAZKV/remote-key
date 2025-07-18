@@ -15,7 +15,7 @@ else:
     _platform = _platform_raw
 
 if _platform == 'windows':
-    user32 = ctypes.windll.user32
+    user32 = ctypes.WinDLL('user32', use_last_error=True)
 
     INPUT_MOUSE = 0
     INPUT_KEYBOARD = 1
@@ -60,9 +60,12 @@ if _platform == 'windows':
         _anonymous_ = ('u',)
         _fields_ = [('type', wintypes.DWORD), ('u', _INPUT_UNION)]
 
+    user32.SendInput.argtypes = (wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int)
+    user32.SendInput.restype = wintypes.UINT
+
     def _send_input(inp):
         if user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(INPUT)) != 1:
-            raise OSError('SendInput failed')
+            raise ctypes.WinError(ctypes.get_last_error())
 
     VK = {
         'ctrl': 0x11,

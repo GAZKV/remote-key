@@ -52,3 +52,9 @@ curl -X POST http://localhost:8000/press/1 \
      -H 'Content-Type: application/json' \
      -d '{"seq": ["ctrl+c", "ctrl+v"]}'
 ```
+
+## Troubleshooting
+
+If a key press fails on Windows, the backend now raises an `OSError` with the
+original Windows error code from `SendInput`. Checking this code can help you
+identify permission or driver issues when events don't fire.
