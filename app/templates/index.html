@@ -76,6 +76,10 @@
 
   <button id="configBtn" class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#configPanel" aria-controls="configPanel">⚙</button>
 
+  <button id="backBtn" class="btn btn-secondary" style="display:none; position:fixed; top:1rem; left:1rem; z-index:1050;">
+    <i class="bi bi-arrow-left"></i>
+  </button>
+
   <div class="offcanvas offcanvas-end" tabindex="-1" id="configPanel" aria-labelledby="configPanelLabel">
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="configPanelLabel">Configuración</h5>
@@ -200,6 +204,10 @@
         showToast('Modo seguro activo', 'warning');
         return;
       }
+      if (type === 'folder') {
+        openPage(btn.dataset.page || 'root');
+        return;
+      }
       if (critical) {
         confirmCritical().then(accepted => {
           if (accepted) doSend();
@@ -275,6 +283,60 @@
       }
     }
 
+    let currentPage = 'root';
+    const pageStack = ['root'];
+
+    function loadPage(page) {
+      currentPage = page;
+      const ids = getIdList(page) || [];
+      grid.innerHTML = '';
+      configContainer.querySelectorAll('form').forEach(f => f.remove());
+      ids.forEach(id => {
+        const saved = loadConfig(id) || {};
+        const def = defaults[id] || {};
+        const cfg = {
+          label: saved.label || def.label || `Botón ${id}`,
+          image: saved.image !== undefined ? saved.image : def.image,
+          color: saved.color !== undefined ? saved.color : def.color,
+          seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
+          cmd: saved.cmd !== undefined ? saved.cmd : (def.cmd || ''),
+          method: saved.method || def.method || 'GET',
+          url: saved.url !== undefined ? saved.url : (def.url || ''),
+          body: saved.body !== undefined ? saved.body : (def.body || ''),
+          type: saved.type || def.type || 'keys',
+          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color'))),
+          effect: saved.effect || def.effect || 'anim',
+          sound: saved.sound !== undefined ? saved.sound : (def.sound || ''),
+          critical: saved.critical !== undefined ? saved.critical : (def.critical || false),
+          page: saved.page || def.page || ''
+        };
+        const button = createButton(id, cfg);
+        grid.appendChild(button);
+        const form = createForm(id, cfg);
+        configContainer.appendChild(form);
+        setupForm(form, button, id);
+      });
+      updateBackButton();
+    }
+
+    function openPage(page) {
+      if (!getIdList(page)) saveIdList([], page);
+      pageStack.push(page);
+      loadPage(page);
+    }
+
+    function goBack() {
+      if (pageStack.length > 1) {
+        pageStack.pop();
+        loadPage(pageStack[pageStack.length - 1]);
+      }
+    }
+
+    function updateBackButton() {
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) backBtn.style.display = pageStack.length > 1 ? 'block' : 'none';
+    }
+
     function confirmDeletion() {
       const modalEl = document.getElementById('confirmDeleteModal');
       const modal = new bootstrap.Modal(modalEl);
@@ -338,6 +400,7 @@
       btn.dataset.sound = cfg.sound || '';
       btn.dataset.critical = cfg.critical ? 'true' : 'false';
       btn.dataset.image = cfg.image || '';
+      btn.dataset.page = cfg.page || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -350,6 +413,8 @@
         display = cfg.cmd || '';
       } else if (btn.dataset.type === 'http') {
         display = `${cfg.method || 'GET'} ${cfg.url || ''}`;
+      } else if (btn.dataset.type === 'folder') {
+        display = '📁';
       } else {
         display = (cfg.seq || []).join(' + ');
       }
@@ -379,6 +444,7 @@
               <option value="keys"${(cfg.type || 'keys') === 'keys' ? ' selected' : ''}>Secuencia de teclas</option>
               <option value="shell"${cfg.type === 'shell' ? ' selected' : ''}>Comando shell</option>
               <option value="http"${cfg.type === 'http' ? ' selected' : ''}>Petición HTTP</option>
+              <option value="folder"${cfg.type === 'folder' ? ' selected' : ''}>Carpeta</option>
             </select>
           </div>
           <div class="mb-2">
@@ -396,6 +462,10 @@
           <div class="mb-2 color-group${bgType === 'color' ? '' : ' d-none'}">
             <label class="form-label">Color</label>
             <input type="color" class="form-control form-control-color" value="${cfg.color || '#ffffff'}">
+          </div>
+          <div class="mb-2 page-group${cfg.type === 'folder' ? '' : ' d-none'}">
+            <label class="form-label">ID de carpeta</label>
+            <input type="text" class="form-control page-input" value="${cfg.page || ('folder_' + id)}">
           </div>
           <div class="mb-2 effect-group">
             <label class="form-label">Efecto</label>
@@ -446,10 +516,12 @@
       const urlInput = form.querySelector('.url-input');
       const methodInput = form.querySelector('.method-input');
       const bodyInput = form.querySelector('.body-input');
+      const pageInput = form.querySelector('.page-input');
       const criticalCheck = form.querySelector('.critical-check');
       const seqGroup = form.querySelector('.seq-group');
       const cmdGroup = form.querySelector('.cmd-group');
       const httpGroup = form.querySelector('.http-group');
+      const pageGroup = form.querySelector('.page-group');
       const deleteBtn = form.querySelector('.delete-btn');
 
       const labelSpan = button.querySelector('.btn-label');
@@ -463,6 +535,7 @@
         seqGroup.classList.toggle('d-none', typeSelect.value !== 'keys');
         cmdGroup.classList.toggle('d-none', typeSelect.value !== 'shell');
         httpGroup.classList.toggle('d-none', typeSelect.value !== 'http');
+        pageGroup.classList.toggle('d-none', typeSelect.value !== 'folder');
       };
 
       const applyStyles = () => {
@@ -490,7 +563,8 @@
           body: bodyInput.value,
           critical: criticalCheck.checked,
           effect: effectSelect.value,
-          sound: soundInput.value.trim()
+          sound: soundInput.value.trim(),
+          page: pageInput ? pageInput.value.trim() : ''
         });
         fetch(`/config/${id}`, {
           method: 'POST',
@@ -506,7 +580,8 @@
             color: colorInput.value,
             critical: criticalCheck.checked,
             effect: effectSelect.value,
-            sound: soundInput.value.trim()
+            sound: soundInput.value.trim(),
+            page: pageInput ? pageInput.value.trim() : ''
           })
         }).catch(() => {});
       };
@@ -549,6 +624,7 @@
       button.dataset.effect = effectSelect.value;
       button.dataset.sound = soundInput.value.trim();
       button.dataset.critical = criticalCheck.checked;
+      if (pageInput) button.dataset.page = pageInput.value.trim();
 
       toggleGroups();
       applyStyles();
@@ -565,7 +641,8 @@
             url: urlInput.value.trim(),
             body: bodyInput.value,
             effect: effectSelect.value,
-            sound: soundInput.value.trim()
+            sound: soundInput.value.trim(),
+            page: pageInput ? pageInput.value.trim() : ''
           })
         }).catch(() => {});
       }
@@ -581,10 +658,14 @@
           seqDisplay.textContent = cmdInput.value;
         } else if (typeSelect.value === 'http') {
           seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+        } else if (typeSelect.value === 'folder') {
+          if (pageInput && !pageInput.value) pageInput.value = `folder_${id}`;
+          seqDisplay.textContent = '📁';
         } else {
           seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
         }
         button.dataset.type = typeSelect.value;
+        if (pageInput) button.dataset.page = pageInput.value.trim();
         saveCurrent();
       });
 
@@ -661,7 +742,8 @@
             url: urlInput.value.trim(),
             body: bodyInput.value,
             effect: effectSelect.value,
-            sound: soundInput.value.trim()
+            sound: soundInput.value.trim(),
+            page: pageInput ? pageInput.value.trim() : ''
           })
         })
           .then(r => r.json())
@@ -682,6 +764,7 @@
               button.dataset.effect = effectSelect.value;
               button.dataset.sound = soundInput.value.trim();
               button.dataset.critical = criticalCheck.checked;
+              if (pageInput) button.dataset.page = pageInput.value.trim();
             }
           })
           .catch(() => {});
@@ -703,7 +786,8 @@
               body: bodyInput.value,
               effect: effectSelect.value,
               sound: soundInput.value.trim(),
-              critical: criticalCheck.checked
+              critical: criticalCheck.checked,
+              page: pageInput ? pageInput.value.trim() : ''
             })
           }).catch(() => {});
           if (typeSelect.value === 'shell') {
@@ -721,6 +805,7 @@
           button.dataset.effect = effectSelect.value;
           button.dataset.sound = soundInput.value.trim();
           button.dataset.critical = criticalCheck.checked;
+          if (pageInput) button.dataset.page = pageInput.value.trim();
           saveCurrent();
         });
       }
@@ -738,7 +823,8 @@
               url: urlInput.value.trim(),
               body: bodyInput.value,
               effect: effectSelect.value,
-              sound: soundInput.value.trim()
+              sound: soundInput.value.trim(),
+              page: pageInput ? pageInput.value.trim() : ''
             })
           }).catch(() => {});
           if (typeSelect.value === 'http') {
@@ -758,16 +844,20 @@
       }
     }
 
-    function getIdList() {
+    function pageKey(page) {
+      return page === 'root' ? 'button_ids' : `page_${page}_button_ids`;
+    }
+
+    function getIdList(page = currentPage) {
       try {
-        return JSON.parse(localStorage.getItem(storageKey('button_ids')) || 'null');
+        return JSON.parse(localStorage.getItem(storageKey(pageKey(page))) || 'null');
       } catch (e) {
         return null;
       }
     }
 
-    function saveIdList(ids) {
-      localStorage.setItem(storageKey('button_ids'), JSON.stringify(ids));
+    function saveIdList(ids, page = currentPage) {
+      localStorage.setItem(storageKey(pageKey(page)), JSON.stringify(ids));
     }
 
     function cleanupUnusedConfigs(validIds) {
@@ -790,7 +880,19 @@ function generateId(existing) {
       fetch('/export')
         .then(r => r.json())
         .then(data => {
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const pages = {};
+          const rootKey = storageKey('button_ids');
+          const prefix = storageKey('page_');
+          Object.keys(localStorage).forEach(k => {
+            if (k === rootKey) {
+              pages['root'] = JSON.parse(localStorage.getItem(k) || '[]');
+            } else if (k.startsWith(prefix)) {
+              const pid = k.slice(prefix.length);
+              pages[pid] = JSON.parse(localStorage.getItem(k) || '[]');
+            }
+          });
+          const out = { buttons: data, pages };
+          const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
           a.download = 'config.json';
@@ -810,21 +912,32 @@ function generateId(existing) {
           alert('Archivo inválido');
           return;
         }
+        const buttonsData = data.buttons || data;
+        const pagesData = data.pages || { root: Object.keys(buttonsData) };
         fetch('/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(buttonsData)
         })
           .then(r => r.json())
           .then(resp => {
             if (resp.status === 'ok') {
-              const ids = Object.keys(data);
-              const current = getIdList() || [];
+              const ids = pagesData.root || Object.keys(buttonsData);
+              const current = getIdList('root') || [];
               current.forEach(id => {
                 if (!ids.includes(id)) localStorage.removeItem(storageKey('config_' + id));
               });
-              saveIdList(ids);
-              ids.forEach(id => saveConfig(id, data[id]));
+              saveIdList(ids, 'root');
+              ids.forEach(id => saveConfig(id, buttonsData[id]));
+              const prefix = storageKey('page_');
+              Object.keys(localStorage).forEach(k => {
+                if (k.startsWith(prefix) && !(k.slice(prefix.length) in pagesData)) {
+                  localStorage.removeItem(k);
+                }
+              });
+              Object.entries(pagesData).forEach(([pid, list]) => {
+                if (pid !== 'root') saveIdList(list, pid);
+              });
               location.reload();
             } else {
               alert('Error: ' + (resp.message || 'import failed'));
@@ -838,7 +951,7 @@ function generateId(existing) {
   let configContainer, grid, safeModeBtn;
 
     function addNewButton() {
-      const ids = getIdList() || Object.keys(defaults);
+      const ids = getIdList() || [];
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
@@ -953,37 +1066,15 @@ function generateId(existing) {
         });
       }
 
-      let ids = getIdList();
+      let ids = getIdList('root');
       if (!ids) {
         ids = Object.keys(defaults);
-        saveIdList(ids);
+        saveIdList(ids, 'root');
       }
       cleanupUnusedConfigs(ids);
-
-      ids.forEach(id => {
-        const saved = loadConfig(id) || {};
-        const def = defaults[id] || {};
-        const cfg = {
-          label: saved.label || def.label || `Botón ${id}`,
-          image: saved.image !== undefined ? saved.image : def.image,
-          color: saved.color !== undefined ? saved.color : def.color,
-          seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
-          cmd: saved.cmd !== undefined ? saved.cmd : (def.cmd || ''),
-          method: saved.method || def.method || 'GET',
-          url: saved.url !== undefined ? saved.url : (def.url || ''),
-          body: saved.body !== undefined ? saved.body : (def.body || ''),
-          type: saved.type || def.type || 'keys',
-          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color'))),
-          effect: saved.effect || def.effect || 'anim',
-          sound: saved.sound !== undefined ? saved.sound : (def.sound || ''),
-          critical: saved.critical !== undefined ? saved.critical : (def.critical || false)
-        };
-        const button = createButton(id, cfg);
-        grid.appendChild(button);
-        const form = createForm(id, cfg);
-        configContainer.appendChild(form);
-        setupForm(form, button, id);
-      });
+      loadPage('root');
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) backBtn.addEventListener('click', goBack);
     });
 
 </script>
