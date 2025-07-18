@@ -58,6 +58,7 @@ if _platform == 'windows':
         VK[f'f{n}'] = getattr(win32con, f'VK_F{n}')
 
     # Constantes SendInput
+    INPUT_MOUSE = 0
     INPUT_KEYBOARD = 1
     KEYEVENTF_KEYUP = 0x0002
 
@@ -127,7 +128,7 @@ if _platform == 'windows':
             raise ValueError(f'Unsupported mouse button: {button}')
         for flag in (down_flags[btn], up_flags[btn]):
             mi = MOUSEINPUT(0,0,0,flag,0,ctypes.pointer(extra))
-            inp = INPUT(type=INPUT_KEYBOARD, mi=mi)
+            inp = INPUT(type=INPUT_MOUSE, mi=mi)
             SendInput(1, ctypes.pointer(inp), ctypes.sizeof(inp))
 
     backend = SimpleNamespace(press=press, hotkey=hotkey, click=click)
