@@ -3,6 +3,7 @@ import pyautogui
 import subprocess
 import shlex
 import re
+import requests
 
 # Disable the fail-safe feature so moving the mouse to a corner
 # doesn't raise an exception during automated key presses.
@@ -92,7 +93,10 @@ buttons = {
         'cmd': '',
         'seq': ['alt+n'],
         'image': None,
-        'color': '#f8d7da'
+        'color': '#f8d7da',
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '2': {
         'label': 'Botón 2 / Button 2',
@@ -100,7 +104,10 @@ buttons = {
         'cmd': '',
         'seq': ['alt+c'],
         'image': None,
-        'color': '#d1e7dd'
+        'color': '#d1e7dd',
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '3': {
         'label': 'Botón 3 / Button 3',
@@ -108,7 +115,10 @@ buttons = {
         'cmd': '',
         'seq': ['n'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '4': {
         'label': 'Botón 4 / Button 4',
@@ -116,7 +126,10 @@ buttons = {
         'cmd': '',
         'seq': ['1'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '5': {
         'label': 'Botón 5 / Button 5',
@@ -124,7 +137,10 @@ buttons = {
         'cmd': '',
         'seq': ['ctrl+a'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '6': {
         'label': 'Botón 6 / Button 6',
@@ -132,7 +148,10 @@ buttons = {
         'cmd': '',
         'seq': ['ctrl+c'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '7': {
         'label': 'Botón 7 / Button 7',
@@ -140,7 +159,10 @@ buttons = {
         'cmd': '',
         'seq': ['ctrl+v'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '8': {
         'label': 'Botón 8 / Button 8',
@@ -148,7 +170,10 @@ buttons = {
         'cmd': '',
         'seq': ['f5'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '9': {
         'label': 'Botón 9 / Button 9',
@@ -156,7 +181,10 @@ buttons = {
         'cmd': '',
         'seq': ['esc'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '10': {
         'label': 'Botón 10 / Button 10',
@@ -164,7 +192,10 @@ buttons = {
         'cmd': '',
         'seq': ['enter'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '11': {
         'label': 'Botón 11 / Button 11',
@@ -172,7 +203,10 @@ buttons = {
         'cmd': '',
         'seq': ['tab'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     },
     '12': {
         'label': 'Botón 12 / Button 12',
@@ -180,7 +214,10 @@ buttons = {
         'cmd': '',
         'seq': ['space'],
         'image': None,
-        'color': None
+        'color': None,
+        'method': 'GET',
+        'url': '',
+        'body': None
     }
 }
 
@@ -202,6 +239,16 @@ def update_config(btn_id):
     if btn['type'] == 'shell':
         btn['cmd'] = str(data.get('cmd', '')).strip()
         return jsonify({'status': 'ok', 'type': 'shell', 'cmd': btn['cmd']})
+    elif btn['type'] == 'http':
+        btn['method'] = str(data.get('method', 'GET')).upper()
+        btn['url'] = str(data.get('url', '')).strip()
+        btn['body'] = data.get('body')
+        return jsonify({
+            'status': 'ok',
+            'type': 'http',
+            'method': btn['method'],
+            'url': btn['url']
+        })
     else:
         seq_val = data.get('seq', '')
         if isinstance(seq_val, list):
@@ -225,6 +272,9 @@ def press(btn_id):
     req_type = data.get('type') or request.values.get('type') or 'keys'
     cmd_val = data.get('cmd') or request.values.get('cmd')
     seq_val = data.get('seq') if 'seq' in data else request.values.get('seq')
+    method_val = data.get('method') or request.values.get('method')
+    url_val = data.get('url') or request.values.get('url')
+    body_val = data.get('body') if 'body' in data else request.values.get('body')
 
     if btn_id in buttons:
         cfg = buttons[btn_id]
@@ -235,6 +285,17 @@ def press(btn_id):
                 return jsonify({'status': 'error', 'message': 'Comando vacío'}), 400
             result = run_shell_command(cmd)
             return jsonify({'status': 'ok', 'stdout': result.stdout})
+        elif action == 'http':
+            method = (method_val or cfg.get('method', 'GET')).upper()
+            url = url_val if url_val not in (None, '') else cfg.get('url')
+            body = body_val if body_val not in (None, '') else cfg.get('body')
+            if not url:
+                return jsonify({'status': 'error', 'message': 'URL vacía'}), 400
+            try:
+                resp = requests.request(method, url, json=body)
+                return jsonify({'status': 'ok', 'status_code': resp.status_code})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': str(e)}), 500
         else:
             seq = seq_val if seq_val not in (None, '') else cfg.get('seq')
     else:
@@ -243,6 +304,14 @@ def press(btn_id):
                 return jsonify({'status': 'error', 'message': 'Comando vacío'}), 400
             result = run_shell_command(cmd_val)
             return jsonify({'status': 'ok', 'stdout': result.stdout})
+        elif req_type == 'http':
+            if not url_val:
+                return jsonify({'status': 'error', 'message': 'URL vacía'}), 400
+            try:
+                resp = requests.request((method_val or 'GET').upper(), url_val, json=body_val)
+                return jsonify({'status': 'ok', 'status_code': resp.status_code})
+            except Exception as e:
+                return jsonify({'status': 'error', 'message': str(e)}), 500
         else:
             if seq_val in (None, ''):
                 return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404

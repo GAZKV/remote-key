@@ -109,6 +109,9 @@
       const type = btn?.dataset.type || 'keys';
       const seq = btn?.dataset.seq || '';
       const cmd = btn?.dataset.cmd || '';
+      const method = btn?.dataset.method || 'GET';
+      const url = btn?.dataset.url || '';
+      const bodyData = btn?.dataset.body || '';
       if (type === 'shell') {
         if (!cmd) return;
         if (!confirm(`Ejecutar comando:\n${cmd}?`)) return;
@@ -116,12 +119,16 @@
       fetch(`/press/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, seq, cmd })
+        body: JSON.stringify({ type, seq, cmd, method, url, body: bodyData })
       })
         .then(r => r.json())
         .then(resp => {
           if (resp.status === 'ok') {
-            console.log(`Pulsadas: ${resp.pressed.join(', ')} / Pressed: ${resp.pressed.join(', ')}`);
+            if (type === 'http') {
+              alert(`HTTP ${method} -> ${resp.status_code}`);
+            } else {
+              console.log(`Pulsadas: ${resp.pressed.join(', ')} / Pressed: ${resp.pressed.join(', ')}`);
+            }
           } else {
             alert('Error: ' + resp.message);
           }
@@ -176,6 +183,9 @@
       btn.dataset.type = cfg.type || 'keys';
       btn.dataset.seq = (cfg.seq || []).join('\n');
       btn.dataset.cmd = cfg.cmd || '';
+      btn.dataset.method = cfg.method || 'GET';
+      btn.dataset.url = cfg.url || '';
+      btn.dataset.body = cfg.body || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -183,7 +193,14 @@
       } else if (cfg.color) {
         btn.style.backgroundColor = cfg.color;
       }
-      const display = btn.dataset.type === 'shell' ? (cfg.cmd || '') : (cfg.seq || []).join(' + ');
+      let display;
+      if (btn.dataset.type === 'shell') {
+        display = cfg.cmd || '';
+      } else if (btn.dataset.type === 'http') {
+        display = `${cfg.method || 'GET'} ${cfg.url || ''}`;
+      } else {
+        display = (cfg.seq || []).join(' + ');
+      }
       btn.innerHTML = `<span class="btn-label">${cfg.label}</span><br><small class="seq-display">${display}</small>`;
       return btn;
     }
@@ -209,6 +226,7 @@
             <select class="form-select action-type">
               <option value="keys"${(cfg.type || 'keys') === 'keys' ? ' selected' : ''}>Secuencia de teclas</option>
               <option value="shell"${cfg.type === 'shell' ? ' selected' : ''}>Comando shell</option>
+              <option value="http"${cfg.type === 'http' ? ' selected' : ''}>Petición HTTP</option>
             </select>
           </div>
           <div class="mb-2">
@@ -234,6 +252,14 @@
           <div class="mb-2 cmd-group${cfg.type === 'shell' ? '' : ' d-none'}">
             <label class="form-label">Comando</label>
             <input type="text" class="form-control cmd-input" value="${cfg.cmd || ''}">
+          </div>
+          <div class="mb-2 http-group${cfg.type === 'http' ? '' : ' d-none'}">
+            <label class="form-label">URL</label>
+            <input type="text" class="form-control url-input" value="${cfg.url || ''}">
+            <label class="form-label mt-2">Método</label>
+            <input type="text" class="form-control method-input" value="${cfg.method || 'GET'}">
+            <label class="form-label mt-2">Payload</label>
+            <textarea class="form-control body-input" rows="2">${cfg.body || ''}</textarea>
           </div>`;
       return form;
     }
@@ -246,8 +272,12 @@
       const typeSelect = form.querySelector('.action-type');
       const seqInput = form.querySelector('.seq-input');
       const cmdInput = form.querySelector('.cmd-input');
+      const urlInput = form.querySelector('.url-input');
+      const methodInput = form.querySelector('.method-input');
+      const bodyInput = form.querySelector('.body-input');
       const seqGroup = form.querySelector('.seq-group');
       const cmdGroup = form.querySelector('.cmd-group');
+      const httpGroup = form.querySelector('.http-group');
       const deleteBtn = form.querySelector('.delete-btn');
 
       const labelSpan = button.querySelector('.btn-label');
@@ -258,6 +288,7 @@
         form.querySelector('.color-group').classList.toggle('d-none', bgSelect.value !== 'color');
         seqGroup.classList.toggle('d-none', typeSelect.value !== 'keys');
         cmdGroup.classList.toggle('d-none', typeSelect.value !== 'shell');
+        httpGroup.classList.toggle('d-none', typeSelect.value !== 'http');
       };
 
       const applyStyles = () => {
@@ -279,7 +310,10 @@
           color: colorInput.value,
           type: typeSelect.value,
           seq: seqInput.value.trim(),
-          cmd: cmdInput.value.trim()
+          cmd: cmdInput.value.trim(),
+          method: methodInput.value.trim(),
+          url: urlInput.value.trim(),
+          body: bodyInput.value
         });
       };
 
@@ -305,19 +339,35 @@
         }
 
       labelSpan.textContent = labelInput.value;
-      seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seqInput.value.split(/\s+/).join(' + ');
+      if (typeSelect.value === 'shell') {
+        seqDisplay.textContent = cmdInput.value;
+      } else if (typeSelect.value === 'http') {
+        seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+      } else {
+        seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
+      }
       button.dataset.seq = seqInput.value.trim();
       button.dataset.type = typeSelect.value;
       button.dataset.cmd = cmdInput.value.trim();
+      button.dataset.method = methodInput.value.trim();
+      button.dataset.url = urlInput.value.trim();
+      button.dataset.body = bodyInput.value;
 
       toggleGroups();
       applyStyles();
 
-      if (seqInput.value.trim() || cmdInput.value.trim()) {
+      if (seqInput.value.trim() || cmdInput.value.trim() || urlInput.value.trim()) {
         fetch(`/config/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: typeSelect.value, seq: seqInput.value.trim(), cmd: cmdInput.value.trim() })
+          body: JSON.stringify({
+            type: typeSelect.value,
+            seq: seqInput.value.trim(),
+            cmd: cmdInput.value.trim(),
+            method: methodInput.value.trim(),
+            url: urlInput.value.trim(),
+            body: bodyInput.value
+          })
         }).catch(() => {});
       }
 
@@ -328,7 +378,13 @@
 
       typeSelect.addEventListener('change', () => {
         toggleGroups();
-        seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seqInput.value.split(/\s+/).join(' + ');
+        if (typeSelect.value === 'shell') {
+          seqDisplay.textContent = cmdInput.value;
+        } else if (typeSelect.value === 'http') {
+          seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+        } else {
+          seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
+        }
         button.dataset.type = typeSelect.value;
         saveCurrent();
       });
@@ -354,14 +410,30 @@
         fetch(`/config/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: typeSelect.value, seq, cmd: cmdInput.value.trim() })
+          body: JSON.stringify({
+            type: typeSelect.value,
+            seq,
+            cmd: cmdInput.value.trim(),
+            method: methodInput.value.trim(),
+            url: urlInput.value.trim(),
+            body: bodyInput.value
+          })
         })
           .then(r => r.json())
           .then(resp => {
             if (resp.status === 'ok') {
-              seqDisplay.textContent = typeSelect.value === 'shell' ? cmdInput.value : seq.split(/\s+/).join(' + ');
+              if (typeSelect.value === 'shell') {
+                seqDisplay.textContent = cmdInput.value;
+              } else if (typeSelect.value === 'http') {
+                seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+              } else {
+                seqDisplay.textContent = seq.split(/\s+/).join(' + ');
+              }
               button.dataset.seq = seq;
               button.dataset.type = typeSelect.value;
+              button.dataset.method = methodInput.value.trim();
+              button.dataset.url = urlInput.value.trim();
+              button.dataset.body = bodyInput.value;
             }
           })
           .catch(() => {});
@@ -374,13 +446,56 @@
           fetch(`/config/${id}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: typeSelect.value, seq: seqInput.value.trim(), cmd })
+            body: JSON.stringify({
+              type: typeSelect.value,
+              seq: seqInput.value.trim(),
+              cmd,
+              method: methodInput.value.trim(),
+              url: urlInput.value.trim(),
+              body: bodyInput.value
+            })
           }).catch(() => {});
-          seqDisplay.textContent = typeSelect.value === 'shell' ? cmd : seqInput.value.split(/\s+/).join(' + ');
+          if (typeSelect.value === 'shell') {
+            seqDisplay.textContent = cmd;
+          } else if (typeSelect.value === 'http') {
+            seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+          } else {
+            seqDisplay.textContent = seqInput.value.split(/\s+/).join(' + ');
+          }
           button.dataset.cmd = cmd;
           button.dataset.type = typeSelect.value;
+          button.dataset.method = methodInput.value.trim();
+          button.dataset.url = urlInput.value.trim();
+          button.dataset.body = bodyInput.value;
           saveCurrent();
         });
+      }
+
+      if (urlInput) {
+        const updateHttp = () => {
+          fetch(`/config/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: typeSelect.value,
+              seq: seqInput.value.trim(),
+              cmd: cmdInput.value.trim(),
+              method: methodInput.value.trim(),
+              url: urlInput.value.trim(),
+              body: bodyInput.value
+            })
+          }).catch(() => {});
+          if (typeSelect.value === 'http') {
+            seqDisplay.textContent = `${methodInput.value.trim()} ${urlInput.value.trim()}`;
+          }
+          button.dataset.method = methodInput.value.trim();
+          button.dataset.url = urlInput.value.trim();
+          button.dataset.body = bodyInput.value;
+          saveCurrent();
+        };
+        urlInput.addEventListener('change', updateHttp);
+        methodInput.addEventListener('change', updateHttp);
+        bodyInput.addEventListener('change', updateHttp);
       }
     }
 
@@ -409,7 +524,7 @@
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
-      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color' };
+      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color', method: 'GET', url: '', body: '' };
       saveConfig(newId, cfg);
       const button = createButton(newId, cfg);
       grid.appendChild(button);
@@ -439,6 +554,9 @@
           color: saved.color !== undefined ? saved.color : def.color,
           seq: saved.seq ? saved.seq.trim().split(/\s+/) : (def.seq || []),
           cmd: saved.cmd !== undefined ? saved.cmd : (def.cmd || ''),
+          method: saved.method || def.method || 'GET',
+          url: saved.url !== undefined ? saved.url : (def.url || ''),
+          body: saved.body !== undefined ? saved.body : (def.body || ''),
           type: saved.type || def.type || 'keys',
           bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color')))
         };
