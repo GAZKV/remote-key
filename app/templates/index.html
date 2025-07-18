@@ -226,6 +226,7 @@
       btn.dataset.method = cfg.method || 'GET';
       btn.dataset.url = cfg.url || '';
       btn.dataset.body = cfg.body || '';
+      btn.dataset.image = cfg.image || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
         btn.style.backgroundImage = `url('${cfg.image}')`;
@@ -277,8 +278,9 @@
             </select>
           </div>
           <div class="mb-2 image-group${bgType === 'image' ? '' : ' d-none'}">
-            <label class="form-label">URL de imagen</label>
-            <input type="text" class="form-control" value="${cfg.image || ''}">
+            <label class="form-label">Imagen</label>
+            <input type="file" class="form-control img-file mb-2" accept="image/*">
+            <input type="text" class="form-control img-input" value="${cfg.image || ''}" placeholder="URL o base64">
           </div>
           <div class="mb-2 color-group${bgType === 'color' ? '' : ' d-none'}">
             <label class="form-label">Color</label>
@@ -307,7 +309,8 @@
     function setupForm(form, button, id) {
       const labelInput = form.querySelector('.label-input');
       const bgSelect = form.querySelector('.bg-choice');
-      const imgInput = form.querySelector('.image-group input');
+      const imgInput = form.querySelector('.img-input');
+      const imgFile = form.querySelector('.img-file');
       const colorInput = form.querySelector('.color-group input');
       const typeSelect = form.querySelector('.action-type');
       const seqInput = form.querySelector('.seq-input');
@@ -355,6 +358,20 @@
           url: urlInput.value.trim(),
           body: bodyInput.value
         });
+        fetch(`/config/${id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: typeSelect.value,
+            seq: seqInput.value.trim(),
+            cmd: cmdInput.value.trim(),
+            method: methodInput.value.trim(),
+            url: urlInput.value.trim(),
+            body: bodyInput.value,
+            image: imgInput.value.trim(),
+            color: colorInput.value
+          })
+        }).catch(() => {});
       };
 
         if (deleteBtn) {
@@ -436,9 +453,24 @@
       });
 
       imgInput.addEventListener('input', () => {
+        button.dataset.image = imgInput.value.trim();
         applyStyles();
         saveCurrent();
       });
+
+      if (imgFile) {
+        imgFile.addEventListener('change', () => {
+          if (!imgFile.files.length) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            imgInput.value = reader.result;
+            button.dataset.image = reader.result;
+            applyStyles();
+            saveCurrent();
+          };
+          reader.readAsDataURL(imgFile.files[0]);
+        });
+      }
 
       colorInput.addEventListener('input', () => {
         applyStyles();
@@ -549,6 +581,16 @@
 
     function saveIdList(ids) {
       localStorage.setItem(storageKey('button_ids'), JSON.stringify(ids));
+    }
+
+    function cleanupUnusedConfigs(validIds) {
+      const prefix = storageKey('config_');
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith(prefix)) {
+          const id = k.slice(prefix.length);
+          if (!validIds.includes(id)) localStorage.removeItem(k);
+        }
+      });
     }
 
 function generateId(existing) {
@@ -707,6 +749,7 @@ function generateId(existing) {
         ids = Object.keys(defaults);
         saveIdList(ids);
       }
+      cleanupUnusedConfigs(ids);
 
       ids.forEach(id => {
         const saved = loadConfig(id) || {};

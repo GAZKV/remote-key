@@ -171,6 +171,10 @@ def update_config(btn_id):
 
     data = request.get_json(silent=True) or {}
     btn['type'] = data.get('type', btn.get('type', 'keys'))
+    if 'image' in data:
+        btn['image'] = data.get('image')
+    if 'color' in data:
+        btn['color'] = data.get('color')
     if btn['type'] == 'shell':
         btn['cmd'] = str(data.get('cmd', '')).strip()
         return jsonify({'status': 'ok', 'type': 'shell', 'cmd': btn['cmd']})
