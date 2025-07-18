@@ -213,6 +213,7 @@
           <div class="mb-2">
             <label class="form-label">Secuencia / Sequence</label>
             <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
+            <div class="form-text">Ej: <code>ctrl+c wait 500 ctrl+v</code> &mdash; usa <code>wait &lt;ms&gt;</code> para pausar.</div>
           </div>`;
       return form;
     }

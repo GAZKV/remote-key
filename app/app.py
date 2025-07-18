@@ -25,26 +25,49 @@ def send_key_combo(combo: str) -> None:
 def send_key_sequence(seq) -> None:
     """Send a sequence of key combinations.
 
-    ``seq`` can be either a whitespace separated string or a list of strings. In
-    string form, any whitespace (spaces, newlines) is treated as a separator. Each
-    resulting token must use the ``"ctrl+alt+del"`` syntax, where ``+`` denotes
-    simultaneous key presses.
+    ``seq`` can be either a whitespace separated string or a list of
+    strings. In string form, any whitespace (spaces, newlines) is treated
+    as a separator. Each resulting token must use the ``"ctrl+alt+del"``
+    syntax, where ``+`` denotes simultaneous key presses. Tokens of the
+    form ``wait <ms>`` (optionally written ``wait100`` or ``wait100ms``)
+    insert a pause of the specified milliseconds between key combos.
     """
 
     if isinstance(seq, str):
         text = seq.strip()
         if not text:
             return
-        combos = text.split()
+        tokens = text.split()
     elif isinstance(seq, list):
-        combos = [str(c).strip() for c in seq if str(c).strip()]
-        if not combos:
+        tokens = [str(c).strip() for c in seq if str(c).strip()]
+        if not tokens:
             return
     else:
         return
 
-    for combo in combos:
-        send_key_combo(combo)
+    import re
+    import time
+
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+
+        # Pattern: "wait", optional next token with numbers, or
+        # forms like "wait100" or "wait100ms"
+        if token == "wait" and i + 1 < len(tokens):
+            m = re.match(r"^(\d+)(?:ms)?$", tokens[i + 1])
+            if m:
+                time.sleep(int(m.group(1)) / 1000)
+                i += 2
+                continue
+        m = re.match(r"^wait(\d+)(?:ms)?$", token)
+        if m:
+            time.sleep(int(m.group(1)) / 1000)
+            i += 1
+            continue
+
+        send_key_combo(token)
+        i += 1
 
 # Map each button to its configuration including
 # the key sequence, optional background image and
