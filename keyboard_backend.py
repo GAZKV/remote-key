@@ -92,8 +92,7 @@ if _platform == 'windows':
         extra = ctypes.c_ulong(0)
         ki = KEYBDINPUT(wVk=vk, wScan=0, dwFlags=flags, time=0, dwExtraInfo=ctypes.pointer(extra))
         inp = INPUT(type=INPUT_KEYBOARD, ki=ki)
-        res = SendInput(1, ctypes.pointer(inp), ctypes.sizeof(inp))
-        if res == 0:
+        if SendInput(1, ctypes.pointer(inp), ctypes.sizeof(inp)) == 0:
             code = ctypes.get_last_error()
             raise ctypes.WinError(code)
 
