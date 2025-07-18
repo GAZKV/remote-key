@@ -15,22 +15,23 @@ else:
 
 if _platform == 'windows':
     try:
-        import win32con
+        import win32con  # from pywin32
     except ImportError:  # pragma: no cover - simplified constants for tests
-        class win32con:  # type: ignore
-            VK_CONTROL = 0x11
-            VK_MENU = 0x12
-            VK_SHIFT = 0x10
-            VK_LWIN = 0x5B
-            VK_RETURN = 0x0D
-            VK_TAB = 0x09
-            VK_ESCAPE = 0x1B
-            VK_SPACE = 0x20
-            VK_NUMPAD0 = 0x60
-            for _i in range(1, 10):
-                locals()[f'VK_NUMPAD{_i}'] = 0x60 + _i
-            for _i in range(1, 13):
-                locals()[f'VK_F{_i}'] = 0x70 + (_i - 1)
+        win32con = SimpleNamespace(
+            VK_CONTROL=0x11,
+            VK_MENU=0x12,
+            VK_SHIFT=0x10,
+            VK_LWIN=0x5B,
+            VK_RETURN=0x0D,
+            VK_TAB=0x09,
+            VK_ESCAPE=0x1B,
+            VK_SPACE=0x20,
+            VK_NUMPAD0=0x60,
+        )
+        for _i in range(1, 10):
+            setattr(win32con, f'VK_NUMPAD{_i}', 0x60 + _i)
+        for _i in range(1, 13):
+            setattr(win32con, f'VK_F{_i}', 0x70 + (_i - 1))
 
     # Mapeo de teclas virtuales (VK codes)
     VK = {
