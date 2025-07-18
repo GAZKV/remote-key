@@ -21,7 +21,12 @@ The server listens on port **8000**. Open `http://localhost:8000` in your browse
 
 ## Notes on privileges
 
-The application relies on [`pyautogui`](https://pypi.org/project/pyautogui/) to emulate key presses. Depending on your operating system, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
+The application relies on a small module (`keyboard_backend.py`) to send key events. It detects the host operating system when the server starts. `pyautogui` is used on all platforms, but on Windows the backend will try to use `pywin32` (or the `SendInput` API) if it is available. Depending on your OS, sending key events may require administrator or root privileges. If you find that key presses are not working, try running the program with elevated permissions.
+
+### OS support
+
+* **Windows** – Works with `pyautogui`. Installing `pywin32` enables the alternate backend that uses the native `SendInput` API.
+* **Linux/macOS** – Uses `pyautogui`. Additional packages such as `python3-xlib` may be required on Linux.
 
 On Linux, additional system packages like `python3-xlib` may be required for `pyautogui` to function correctly.
 

@@ -8,13 +8,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 mock_pg = types.SimpleNamespace(FAILSAFE=False, press=lambda *a, **k: None, hotkey=lambda *a, **k: None)
 sys.modules['pyautogui'] = mock_pg
 
-from app.app import send_key_sequence
+from keyboard_backend import send_key_sequence
 
 class WaitParseTests(unittest.TestCase):
     def run_seq(self, seq):
         combos = []
         sleeps = []
-        with patch('app.app.send_key_combo', side_effect=lambda c: combos.append(c)):
+        with patch('keyboard_backend.send_key_combo', side_effect=lambda c: combos.append(c)):
             with patch('time.sleep', side_effect=lambda t: sleeps.append(t)):
                 send_key_sequence(seq)
         return combos, sleeps

@@ -1,77 +1,12 @@
 from flask import Flask, render_template, jsonify, request
-import pyautogui
+import sys
+import keyboard_backend as kb
 import subprocess
 import shlex
 import re
 import requests
 
-# Disable the fail-safe feature so moving the mouse to a corner
-# doesn't raise an exception during automated key presses.
-pyautogui.FAILSAFE = False
-
 app = Flask(__name__)
-
-
-def send_key_combo(combo: str) -> None:
-    """Send a key combination using pyautogui.
-
-    The incoming string uses the ``"ctrl+alt+del"`` style syntax. When
-    multiple keys are separated by ``+`` they will be pressed
-    simultaneously, otherwise a single key press is issued.
-    """
-    keys = combo.split("+")
-    if len(keys) == 1:
-        pyautogui.press(keys[0])
-    else:
-        pyautogui.hotkey(*keys)
-
-
-def send_key_sequence(seq) -> None:
-    """Send a sequence of key combinations.
-
-    ``seq`` can be either a whitespace separated string or a list of
-    strings. In string form, any whitespace (spaces, newlines) is treated
-    as a separator. Each resulting token must use the ``"ctrl+alt+del"``
-    syntax, where ``+`` denotes simultaneous key presses. Tokens of the
-    form ``wait <ms>`` (optionally written ``wait100`` or ``wait100ms``)
-    insert a pause of the specified milliseconds between key combos.
-    """
-
-    if isinstance(seq, str):
-        text = seq.strip()
-        if not text:
-            return
-        tokens = text.split()
-    elif isinstance(seq, list):
-        tokens = [str(c).strip() for c in seq if str(c).strip()]
-        if not tokens:
-            return
-    else:
-        return
-
-    import re
-    import time
-
-    i = 0
-    while i < len(tokens):
-        token = tokens[i]
-
-        # Pattern: "wait", optional next token with numbers, or
-        # forms like "wait100" or "wait100ms"
-        if token == "wait" and i + 1 < len(tokens):
-            m = re.match(r"^(\d+)(?:ms)?$", tokens[i + 1])
-            if m:
-                time.sleep(int(m.group(1)) / 1000)
-                i += 2
-                continue
-        m = re.match(r"^wait(\d+)(?:ms)?$", token)
-        if m:
-            time.sleep(int(m.group(1)) / 1000)
-            i += 1
-            continue
-
-        send_key_combo(token)
-        i += 1
 
 
 SAFE_CMD = re.compile(r'^[\w\-./ ]+$')
@@ -317,7 +252,7 @@ def press(btn_id):
                 return jsonify({'status': 'error', 'message': 'Botón no definido'}), 404
             seq = seq_val
 
-    send_key_sequence(seq)
+    kb.send_key_sequence(seq)
     pressed = seq if isinstance(seq, list) else str(seq).split()
     return jsonify({'status': 'ok', 'pressed': pressed})
 
@@ -326,4 +261,8 @@ if __name__ == '__main__':
     # en algunos sistemas para que el envío de teclas funcione correctamente.
     # Note: on some systems you may need elevated privileges for
     # pyautogui to send key events properly.
+    print(
+        f"Detected platform: {kb.PLATFORM}. Using {kb.BACKEND_NAME} backend.",
+        file=sys.stderr,
+    )
     app.run(host='0.0.0.0', port=8000)
