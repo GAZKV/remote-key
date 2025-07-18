@@ -29,6 +29,8 @@ buttons = {
         'seq': ['alt+n'],
         'image': None,
         'color': '#f8d7da',
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -40,6 +42,8 @@ buttons = {
         'seq': ['alt+c'],
         'image': None,
         'color': '#d1e7dd',
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -51,6 +55,8 @@ buttons = {
         'seq': ['n'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -62,6 +68,8 @@ buttons = {
         'seq': ['1'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -73,6 +81,8 @@ buttons = {
         'seq': ['ctrl+a'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -84,6 +94,8 @@ buttons = {
         'seq': ['ctrl+c'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -95,6 +107,8 @@ buttons = {
         'seq': ['ctrl+v'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -106,6 +120,8 @@ buttons = {
         'seq': ['f5'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -117,6 +133,8 @@ buttons = {
         'seq': ['esc'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -128,6 +146,8 @@ buttons = {
         'seq': ['enter'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -139,6 +159,8 @@ buttons = {
         'seq': ['tab'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -150,6 +172,8 @@ buttons = {
         'seq': ['space'],
         'image': None,
         'color': None,
+        'effect': 'anim',
+        'sound': None,
         'method': 'GET',
         'url': '',
         'body': None
@@ -175,6 +199,10 @@ def update_config(btn_id):
         btn['image'] = data.get('image')
     if 'color' in data:
         btn['color'] = data.get('color')
+    if 'effect' in data:
+        btn['effect'] = data.get('effect')
+    if 'sound' in data:
+        btn['sound'] = data.get('sound')
     if btn['type'] == 'shell':
         btn['cmd'] = str(data.get('cmd', '')).strip()
         return jsonify({'status': 'ok', 'type': 'shell', 'cmd': btn['cmd']})
@@ -285,6 +313,8 @@ def import_config():
             'seq',
             'image',
             'color',
+            'effect',
+            'sound',
             'method',
             'url',
             'body',
