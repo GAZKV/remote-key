@@ -115,12 +115,22 @@
     </div>
 
   <script>
+    function playEffect(button) {
+      if (!button) return;
+      const eff = button.dataset.effect || 'anim';
+      if (eff === 'sound') {
+        const snd = button.dataset.sound;
+        if (snd) {
+          const audio = new Audio(snd);
+          audio.play().catch(() => {});
+        }
+      } else if (eff === 'anim') {
+        button.classList.add('active-anim');
+        setTimeout(() => button.classList.remove('active-anim'), 200);
+      }
+    }
     function sendPress(id) {
       const btn = document.querySelector(`[data-btn="${id}"]`);
-      if (btn) {
-        btn.classList.add('active-anim');
-        setTimeout(() => btn.classList.remove('active-anim'), 200);
-      }
       const type = btn?.dataset.type || 'keys';
       const seq = btn?.dataset.seq || '';
       const cmd = btn?.dataset.cmd || '';
@@ -139,6 +149,7 @@
         .then(r => r.json())
         .then(resp => {
           if (resp.status === 'ok') {
+            playEffect(btn);
             if (type === 'http') {
               alert(`HTTP ${method} -> ${resp.status_code}`);
             } else {
@@ -226,6 +237,8 @@
       btn.dataset.method = cfg.method || 'GET';
       btn.dataset.url = cfg.url || '';
       btn.dataset.body = cfg.body || '';
+      btn.dataset.effect = cfg.effect || 'anim';
+      btn.dataset.sound = cfg.sound || '';
       btn.dataset.image = cfg.image || '';
       btn.onclick = () => sendPress(id);
       if (cfg.image) {
@@ -286,6 +299,16 @@
             <label class="form-label">Color</label>
             <input type="color" class="form-control form-control-color" value="${cfg.color || '#ffffff'}">
           </div>
+          <div class="mb-2 effect-group">
+            <label class="form-label">Efecto</label>
+            <select class="form-select effect-select">
+              <option value="anim"${!cfg.effect || cfg.effect === 'anim' ? ' selected' : ''}>Animación</option>
+              <option value="sound"${cfg.effect === 'sound' ? ' selected' : ''}>Sonido</option>
+              <option value="none"${cfg.effect === 'none' ? ' selected' : ''}>Ninguno</option>
+            </select>
+            <input type="file" class="form-control sound-file mt-2${cfg.effect === 'sound' ? '' : ' d-none'}" accept="audio/*">
+            <input type="text" class="form-control sound-input mt-2${cfg.effect === 'sound' ? '' : ' d-none'}" value="${cfg.sound || ''}" placeholder="URL o base64">
+          </div>
           <div class="mb-2 seq-group${(cfg.type || 'keys') === 'keys' ? '' : ' d-none'}">
             <label class="form-label">Secuencia / Sequence</label>
             <textarea class="form-control seq-input" rows="3">${(cfg.seq || []).join('\n')}</textarea>
@@ -312,6 +335,9 @@
       const imgInput = form.querySelector('.img-input');
       const imgFile = form.querySelector('.img-file');
       const colorInput = form.querySelector('.color-group input');
+      const effectSelect = form.querySelector('.effect-select');
+      const soundInput = form.querySelector('.sound-input');
+      const soundFile = form.querySelector('.sound-file');
       const typeSelect = form.querySelector('.action-type');
       const seqInput = form.querySelector('.seq-input');
       const cmdInput = form.querySelector('.cmd-input');
@@ -329,6 +355,8 @@
       const toggleGroups = () => {
         form.querySelector('.image-group').classList.toggle('d-none', bgSelect.value !== 'image');
         form.querySelector('.color-group').classList.toggle('d-none', bgSelect.value !== 'color');
+        soundInput.classList.toggle('d-none', effectSelect.value !== 'sound');
+        soundFile.classList.toggle('d-none', effectSelect.value !== 'sound');
         seqGroup.classList.toggle('d-none', typeSelect.value !== 'keys');
         cmdGroup.classList.toggle('d-none', typeSelect.value !== 'shell');
         httpGroup.classList.toggle('d-none', typeSelect.value !== 'http');
@@ -357,6 +385,9 @@
           method: methodInput.value.trim(),
           url: urlInput.value.trim(),
           body: bodyInput.value
+          ,
+          effect: effectSelect.value,
+          sound: soundInput.value.trim()
         });
         fetch(`/config/${id}`, {
           method: 'POST',
@@ -369,7 +400,9 @@
             url: urlInput.value.trim(),
             body: bodyInput.value,
             image: imgInput.value.trim(),
-            color: colorInput.value
+            color: colorInput.value,
+            effect: effectSelect.value,
+            sound: soundInput.value.trim()
           })
         }).catch(() => {});
       };
@@ -409,6 +442,8 @@
       button.dataset.method = methodInput.value.trim();
       button.dataset.url = urlInput.value.trim();
       button.dataset.body = bodyInput.value;
+      button.dataset.effect = effectSelect.value;
+      button.dataset.sound = soundInput.value.trim();
 
       toggleGroups();
       applyStyles();
@@ -423,7 +458,9 @@
             cmd: cmdInput.value.trim(),
             method: methodInput.value.trim(),
             url: urlInput.value.trim(),
-            body: bodyInput.value
+            body: bodyInput.value,
+            effect: effectSelect.value,
+            sound: soundInput.value.trim()
           })
         }).catch(() => {});
       }
@@ -477,6 +514,30 @@
         saveCurrent();
       });
 
+      effectSelect.addEventListener('change', () => {
+        toggleGroups();
+        button.dataset.effect = effectSelect.value;
+        saveCurrent();
+      });
+
+      soundInput.addEventListener('input', () => {
+        button.dataset.sound = soundInput.value.trim();
+        saveCurrent();
+      });
+
+      if (soundFile) {
+        soundFile.addEventListener('change', () => {
+          if (!soundFile.files.length) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            soundInput.value = reader.result;
+            button.dataset.sound = reader.result;
+            saveCurrent();
+          };
+          reader.readAsDataURL(soundFile.files[0]);
+        });
+      }
+
       seqInput.addEventListener('change', () => {
         const seq = seqInput.value.trim();
         fetch(`/config/${id}`, {
@@ -488,7 +549,9 @@
             cmd: cmdInput.value.trim(),
             method: methodInput.value.trim(),
             url: urlInput.value.trim(),
-            body: bodyInput.value
+            body: bodyInput.value,
+            effect: effectSelect.value,
+            sound: soundInput.value.trim()
           })
         })
           .then(r => r.json())
@@ -506,6 +569,8 @@
               button.dataset.method = methodInput.value.trim();
               button.dataset.url = urlInput.value.trim();
               button.dataset.body = bodyInput.value;
+              button.dataset.effect = effectSelect.value;
+              button.dataset.sound = soundInput.value.trim();
             }
           })
           .catch(() => {});
@@ -524,7 +589,9 @@
               cmd,
               method: methodInput.value.trim(),
               url: urlInput.value.trim(),
-              body: bodyInput.value
+              body: bodyInput.value,
+              effect: effectSelect.value,
+              sound: soundInput.value.trim()
             })
           }).catch(() => {});
           if (typeSelect.value === 'shell') {
@@ -539,6 +606,8 @@
           button.dataset.method = methodInput.value.trim();
           button.dataset.url = urlInput.value.trim();
           button.dataset.body = bodyInput.value;
+          button.dataset.effect = effectSelect.value;
+          button.dataset.sound = soundInput.value.trim();
           saveCurrent();
         });
       }
@@ -554,7 +623,9 @@
               cmd: cmdInput.value.trim(),
               method: methodInput.value.trim(),
               url: urlInput.value.trim(),
-              body: bodyInput.value
+              body: bodyInput.value,
+              effect: effectSelect.value,
+              sound: soundInput.value.trim()
             })
           }).catch(() => {});
           if (typeSelect.value === 'http') {
@@ -563,6 +634,8 @@
           button.dataset.method = methodInput.value.trim();
           button.dataset.url = urlInput.value.trim();
           button.dataset.body = bodyInput.value;
+          button.dataset.effect = effectSelect.value;
+          button.dataset.sound = soundInput.value.trim();
           saveCurrent();
         };
         urlInput.addEventListener('change', updateHttp);
@@ -655,7 +728,7 @@ function generateId(existing) {
       const newId = generateId(ids);
       ids.push(newId);
       saveIdList(ids);
-      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color', method: 'GET', url: '', body: '' };
+      const cfg = { label: `Botón ${newId}`, seq: [], cmd: '', type: 'keys', image: '', color: '', bg: 'color', method: 'GET', url: '', body: '', effect: 'anim', sound: '' };
       saveConfig(newId, cfg);
       const button = createButton(newId, cfg);
       grid.appendChild(button);
@@ -764,7 +837,9 @@ function generateId(existing) {
           url: saved.url !== undefined ? saved.url : (def.url || ''),
           body: saved.body !== undefined ? saved.body : (def.body || ''),
           type: saved.type || def.type || 'keys',
-          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color')))
+          bg: saved.bg || (saved.image ? 'image' : (saved.color ? 'color' : (def.image ? 'image' : 'color'))),
+          effect: saved.effect || def.effect || 'anim',
+          sound: saved.sound !== undefined ? saved.sound : (def.sound || '')
         };
         const button = createButton(id, cfg);
         grid.appendChild(button);
